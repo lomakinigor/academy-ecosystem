@@ -1,0 +1,35 @@
+{
+  "name": "@academy/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js 14 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0410\u043a\u0430\u0434\u0435\u043c\u0438\u0438",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"@academy/web: tests stub\" && exit 0",
+    "clean": "rimraf .next .turbo"
+  },
+  "dependencies": {
+    "@academy/api": "*",
+    "@academy/db": "*",
+    "next": "^14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@academy/config": "*",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.3",
+    "postcss": "^8.4.38",
+    "rimraf": "^5.0.5",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
+  }
+}
