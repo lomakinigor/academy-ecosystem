@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import bcrypt from "bcryptjs";
 
 import { buildAuthConfig } from "@/auth/config";
@@ -13,11 +13,7 @@ class StubRepo implements UserRepository {
 }
 
 const PASSWORD = "correct-horse-battery-staple";
-let passwordHash = "";
-
-beforeAll(async () => {
-  passwordHash = await bcrypt.hash(PASSWORD, 4);
-});
+const passwordHash = bcrypt.hashSync(PASSWORD, 4);
 
 function makeRecord(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
@@ -35,10 +31,11 @@ function makeRecord(overrides: Partial<UserRecord> = {}): UserRecord {
 
 function getAuthorize(repo: UserRepository) {
   const cfg = buildAuthConfig(repo);
+  // next-auth v5 beta wraps Credentials() so real authorize is at .options
   const provider = cfg.providers[0] as unknown as {
-    authorize: (creds: Record<string, unknown>) => Promise<unknown>;
+    options: { authorize: (creds: Record<string, unknown>) => Promise<unknown> };
   };
-  return provider.authorize.bind(provider);
+  return provider.options.authorize.bind(provider);
 }
 
 describe("Credentials authorize()", () => {
