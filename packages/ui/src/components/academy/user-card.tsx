@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/primitives/avatar';
-import { AcademicBadge, type AcademicLevel } from './academic-badge';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "../primitives/avatar";
+import { AcademicBadge, type AcademicLevel } from "./academic-badge";
+import { cn } from "../../lib/utils";
 
 export interface UserCardProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string;
@@ -10,14 +10,14 @@ export interface UserCardProps extends React.HTMLAttributes<HTMLDivElement> {
   subtitle?: string;
   branchLabel?: string;
   isSpeaker?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   action?: React.ReactNode;
 }
 
 const sizeMap = {
-  sm: { avatar: 'size-9', name: 'text-sm', sub: 'text-xs' },
-  md: { avatar: 'size-12', name: 'text-base', sub: 'text-sm' },
-  lg: { avatar: 'size-16', name: 'text-lg', sub: 'text-sm' },
+  sm: { avatar: "size-9", name: "text-sm", sub: "text-xs" },
+  md: { avatar: "size-12", name: "text-base", sub: "text-sm" },
+  lg: { avatar: "size-16", name: "text-lg", sub: "text-sm" },
 } as const;
 
 function getInitials(name: string): string {
@@ -25,8 +25,8 @@ function getInitials(name: string): string {
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
@@ -39,7 +39,7 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
       subtitle,
       branchLabel,
       isSpeaker = false,
-      size = 'md',
+      size = "md",
       action,
       ...props
     },
@@ -51,7 +51,7 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
       <div
         ref={ref}
         className={cn(
-          'flex items-center gap-3 rounded-md border border-border bg-card p-3 transition-shadow duration-250 hover:shadow-soft-sm',
+          "flex items-center gap-3 rounded-md border border-border bg-card p-3 transition-shadow duration-250 hover:shadow-soft-sm",
           className,
         )}
         {...props}
@@ -63,7 +63,9 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('truncate font-heading font-semibold text-brand-primary', sizes.name)}>
+            <span
+              className={cn("truncate font-heading font-semibold text-brand-primary", sizes.name)}
+            >
               {name}
             </span>
             {isSpeaker && (
@@ -73,9 +75,9 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
             )}
           </div>
           {(subtitle || branchLabel) && (
-            <p className={cn('truncate text-foreground/65', sizes.sub)}>
+            <p className={cn("truncate text-foreground/65", sizes.sub)}>
               {subtitle}
-              {subtitle && branchLabel ? ' · ' : ''}
+              {subtitle && branchLabel ? " · " : ""}
               {branchLabel}
             </p>
           )}
@@ -87,6 +89,6 @@ const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
     );
   },
 );
-UserCard.displayName = 'UserCard';
+UserCard.displayName = "UserCard";
 
 export { UserCard };

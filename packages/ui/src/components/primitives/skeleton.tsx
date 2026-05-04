@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { cn } from "../../lib/utils";
 
 const Skeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
@@ -8,11 +8,11 @@ const Skeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
       role="status"
       aria-busy="true"
       aria-live="polite"
-      className={cn('animate-pulse rounded-md bg-muted/70', className)}
+      className={cn("animate-pulse rounded-md bg-muted/70", className)}
       {...props}
     />
   ),
 );
-Skeleton.displayName = 'Skeleton';
+Skeleton.displayName = "Skeleton";
 
 export { Skeleton };
