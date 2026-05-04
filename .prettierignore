@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build artifacts
+.next
+.turbo
+.vercel
+dist
+build
+out
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+storybook-static
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated
+**/.prisma
+**/generated
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode
+.idea

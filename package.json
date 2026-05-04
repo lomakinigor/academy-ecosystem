@@ -3,33 +3,48 @@
   "version": "0.1.0",
   "private": true,
   "description": "Интеллектуальная Экосистема Академии Развития Человека им. В.Ю. Светлова",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "workers/*",
+    "bots/*"
   ],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rimraf node_modules",
-    "db:push": "turbo run db:push --filter=@academy/db",
-    "db:seed": "turbo run db:seed --filter=@academy/db",
-    "db:studio": "turbo run db:studio --filter=@academy/db",
-    "db:generate": "turbo run db:generate --filter=@academy/db",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "clean": "turbo run clean && rimraf node_modules .turbo",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "db:generate": "turbo run db:generate",
+    "db:push": "turbo run db:push",
+    "db:migrate": "turbo run db:migrate",
+    "db:seed": "turbo run db:seed",
+    "db:studio": "pnpm --filter @academy/db studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "prepare": "husky || true"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "prettier": "^3.2.5",
-    "rimraf": "^5.0.5",
-    "turbo": "^1.13.0",
-    "typescript": "^5.4.5"
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.4"
   },
-  "engines": {
-    "node": ">=18.17.0",
-    "npm": ">=10.0.0"
-  },
-  "packageManager": "npm@10.5.0"
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs}": ["prettier --write"],
+    "*.{json,md,yml,yaml,css,scss}": ["prettier --write"]
+  }
 }

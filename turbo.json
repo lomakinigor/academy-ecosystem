@@ -1,23 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "**/.env.*local",
-    ".env"
-  ],
+  "globalDependencies": [".env", ".env.local", "tsconfig.base.json"],
   "globalEnv": [
     "NODE_ENV",
     "DATABASE_URL",
+    "REDIS_URL",
     "NEXTAUTH_SECRET",
     "NEXTAUTH_URL",
-    "REDIS_URL",
     "ANTHROPIC_API_KEY",
-    "SUPABASE_URL"
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SENTRY_DSN"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
-      "dependsOn": ["^build", "^db:generate"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["DATABASE_URL"]
+      "dependsOn": ["^build", "db:generate"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "build/**",
+        ".vercel/output/**"
+      ],
+      "env": ["NEXT_PUBLIC_*"]
     },
     "dev": {
       "cache": false,
@@ -25,42 +30,42 @@
       "dependsOn": ["^db:generate"]
     },
     "lint": {
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "typecheck": {
-      "dependsOn": ["^build", "^db:generate"],
+      "dependsOn": ["^build", "db:generate"],
       "outputs": []
     },
     "test": {
-      "dependsOn": ["^build", "^db:generate"],
+      "dependsOn": ["^build", "db:generate"],
       "outputs": ["coverage/**"],
-      "inputs": [
-        "src/**",
-        "test/**",
-        "tests/**",
-        "prisma/**",
-        "vitest.config.ts",
-        "*.test.ts",
-        "*.test.tsx"
-      ]
+      "env": ["DATABASE_URL", "REDIS_URL", "NEXTAUTH_SECRET"]
     },
-    "clean": {
-      "cache": false
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "outputs": ["playwright-report/**", "test-results/**"]
     },
     "db:generate": {
-      "cache": false,
+      "cache": true,
+      "inputs": ["prisma/schema.prisma", "prisma/schema/**"],
       "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
     },
     "db:push": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["db:generate"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "dependsOn": ["db:generate"]
     },
     "db:seed": {
       "cache": false,
       "dependsOn": ["db:generate"]
     },
-    "db:studio": {
-      "cache": false,
-      "persistent": true
+    "clean": {
+      "cache": false
     }
   }
 }
