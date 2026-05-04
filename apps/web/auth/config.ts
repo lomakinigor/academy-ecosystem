@@ -50,7 +50,7 @@ export function buildAuthConfig(
     ],
     callbacks: {
       async jwt({ token, user }) {
-        if (user) {
+        if (user && user.id) {
           token.id = user.id;
           token.system_role = user.system_role;
           token.academic_level = user.academic_level;

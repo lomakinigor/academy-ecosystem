@@ -7,7 +7,10 @@ const cfg = buildAuthConfig();
 
 describe("jwt callback", () => {
   it("copies session fields onto the token on first sign-in", async () => {
-    const jwt = cfg.callbacks!.jwt as (args: {
+    // next-auth v5 jwt() имеет много обязательных полей (account: Account | null
+    // и др.), которые в этом юнит-тесте не интересны. Двойной каст через unknown
+    // — единственный способ сузить сигнатуру без protest'а TS2352.
+    const jwt = cfg.callbacks!.jwt as unknown as (args: {
       token: Record<string, unknown>;
       user?: Record<string, unknown>;
     }) => Promise<Record<string, unknown>>;
@@ -35,7 +38,7 @@ describe("jwt callback", () => {
   });
 
   it("preserves token on subsequent calls without user", async () => {
-    const jwt = cfg.callbacks!.jwt as (args: {
+    const jwt = cfg.callbacks!.jwt as unknown as (args: {
       token: Record<string, unknown>;
       user?: Record<string, unknown>;
     }) => Promise<Record<string, unknown>>;
@@ -54,7 +57,7 @@ describe("jwt callback", () => {
 
 describe("session callback", () => {
   it("projects token claims onto session.user", async () => {
-    const session = cfg.callbacks!.session as (args: {
+    const session = cfg.callbacks!.session as unknown as (args: {
       session: { user: Record<string, unknown> };
       token: Record<string, unknown>;
     }) => Promise<{ user: Record<string, unknown> }>;

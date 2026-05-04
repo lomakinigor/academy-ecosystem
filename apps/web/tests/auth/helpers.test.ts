@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import type { Session } from "next-auth";
 
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
@@ -20,7 +21,11 @@ import {
 import { SystemRole, AcademicLevel, type SessionUser } from "@/lib/auth/types";
 import { auth } from "@/auth";
 
-const authMock = vi.mocked(auth);
+// next-auth v5 экспортирует `auth` с несколькими перегрузками (no-arg,
+// middleware, route handler). Vitest's vi.mocked() склеивает их в неудобный
+// союз, из-за чего mockResolvedValue(null) падает на TS2345 (его прибивает
+// к ветке с AppRouteHandlerFn). Явно сужаем до сигнатуры () => Promise<Session | null>.
+const authMock = auth as unknown as Mock<() => Promise<Session | null>>;
 
 function user(overrides: Partial<SessionUser> = {}): SessionUser {
   return {
@@ -35,10 +40,8 @@ function user(overrides: Partial<SessionUser> = {}): SessionUser {
   };
 }
 
-function session(u: SessionUser) {
-  return { user: u, expires: "2999-01-01T00:00:00.000Z" } as unknown as Awaited<
-    ReturnType<typeof auth>
-  >;
+function session(u: SessionUser): Session {
+  return { user: u, expires: "2999-01-01T00:00:00.000Z" } as unknown as Session;
 }
 
 beforeEach(() => {
@@ -52,7 +55,7 @@ describe("getCurrentUser", () => {
   });
 
   it("returns null when session has no user", async () => {
-    authMock.mockResolvedValue({ expires: "2999-01-01" } as never);
+    authMock.mockResolvedValue({ expires: "2999-01-01" } as unknown as Session);
     expect(await getCurrentUser()).toBeNull();
   });
 
@@ -107,9 +110,7 @@ describe("requireRole", () => {
 describe("requireBranch", () => {
   it("redirects to /login when unauthenticated", async () => {
     authMock.mockResolvedValue(null);
-    await expect(requireBranch("branch-msk")).rejects.toThrowError(
-      /NEXT_REDIRECT:\/login/,
-    );
+    await expect(requireBranch("branch-msk")).rejects.toThrowError(/NEXT_REDIRECT:\/login/);
   });
 
   it("allows president regardless of branch_id", async () => {
@@ -133,17 +134,13 @@ describe("requireBranch", () => {
   it("redirects branch director on a foreign branch", async () => {
     const u = user({ system_role: SystemRole.BRANCH_DIRECTOR, branch_id: "branch-msk" });
     authMock.mockResolvedValue(session(u));
-    await expect(requireBranch("branch-chel")).rejects.toThrowError(
-      /NEXT_REDIRECT:\/unauthorized/,
-    );
+    await expect(requireBranch("branch-chel")).rejects.toThrowError(/NEXT_REDIRECT:\/unauthorized/);
   });
 
   it("redirects student without a branch", async () => {
     const u = user({ system_role: SystemRole.STUDENT, branch_id: null });
     authMock.mockResolvedValue(session(u));
-    await expect(requireBranch("branch-msk")).rejects.toThrowError(
-      /NEXT_REDIRECT:\/unauthorized/,
-    );
+    await expect(requireBranch("branch-msk")).rejects.toThrowError(/NEXT_REDIRECT:\/unauthorized/);
   });
 });
 
