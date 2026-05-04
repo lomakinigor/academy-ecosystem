@@ -1,0 +1,35 @@
+{
+  "name": "academy-ecosystem",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Интеллектуальная Экосистема Академии Развития Человека им. В.Ю. Светлова",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rimraf node_modules",
+    "db:push": "turbo run db:push --filter=@academy/db",
+    "db:seed": "turbo run db:seed --filter=@academy/db",
+    "db:studio": "turbo run db:studio --filter=@academy/db",
+    "db:generate": "turbo run db:generate --filter=@academy/db",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.5.0"
+}

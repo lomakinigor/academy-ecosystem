@@ -1,0 +1,233 @@
+// Prisma schema — Academy Ecosystem
+// Источник правды по моделям: CLAUDE.md (раздел "Prisma Schema")
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum SystemRole {
+  PRESIDENT
+  VICE_PRESIDENT
+  BRANCH_DIRECTOR
+  BRANCH_ADMIN
+  STUDENT
+}
+
+enum AcademicLevel {
+  FOUNDER
+  MAGISTER
+  MASTER
+  LISTENER
+}
+
+enum EventStatus {
+  DRAFT
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum EventType {
+  SEMINAR
+  PRACTICE
+  MASTERCLASS
+  TRIP
+  GRADING
+  ONLINE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  WAITLIST
+  CANCELLED
+  ATTENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentType {
+  BOOKING
+  REFERRAL_BONUS
+  EXECUTOR_PAYOUT
+}
+
+// ─────────────────────────────────────────────────────────────
+// Core models
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String
+  phone          String?
+  avatar         String?
+  system_role    SystemRole    @default(STUDENT)
+  academic_level AcademicLevel @default(LISTENER)
+  is_speaker     Boolean       @default(false)
+  branch_id      String?
+  branch         Branch?       @relation(fields: [branch_id], references: [id])
+  referral_code  String?       @unique
+  referred_by    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  bookings         Booking[]
+  payments         Payment[]
+  mentor_of        MentorRelation[] @relation("Mentor")
+  mentored_by      MentorRelation[] @relation("Student")
+  speaker_profile  SpeakerProfile?
+  executor_balance ExecutorBalance?
+  academic_records AcademicRecord[]
+  events_as_speaker Event[]         @relation("EventSpeaker")
+
+  @@index([branch_id])
+  @@index([system_role])
+  @@index([academic_level])
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  name    String
+  city    String
+  country String  @default("RU")
+
+  users  User[]
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id               String      @id @default(cuid())
+  title            String
+  description      String?
+  type             EventType
+  status           EventStatus @default(DRAFT)
+  start_at         DateTime
+  end_at           DateTime
+  speaker_id       String
+  speaker          User        @relation("EventSpeaker", fields: [speaker_id], references: [id])
+  branch_id        String
+  branch           Branch      @relation(fields: [branch_id], references: [id])
+  max_participants Int?
+  price            Decimal?
+  is_grading       Boolean     @default(false)
+  program_id       String?
+
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([branch_id])
+  @@index([speaker_id])
+  @@index([status])
+  @@index([start_at])
+}
+
+model Booking {
+  id       String        @id @default(cuid())
+  user_id  String
+  user     User          @relation(fields: [user_id], references: [id])
+  event_id String
+  event    Event         @relation(fields: [event_id], references: [id])
+  status   BookingStatus @default(PENDING)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([user_id, event_id])
+  @@index([event_id])
+  @@index([status])
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  user_id    String
+  user       User          @relation(fields: [user_id], references: [id])
+  amount     Decimal
+  status     PaymentStatus @default(PENDING)
+  type       PaymentType
+  booking_id String?
+  booking    Booking?      @relation(fields: [booking_id], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([user_id])
+  @@index([status])
+  @@index([type])
+}
+
+model ExecutorBalance {
+  id      String  @id @default(cuid())
+  user_id String  @unique
+  user    User    @relation(fields: [user_id], references: [id])
+  accrued Decimal @default(0)
+  paid    Decimal @default(0)
+  pending Decimal @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MentorRelation {
+  id         String   @id @default(cuid())
+  mentor_id  String
+  mentor     User     @relation("Mentor", fields: [mentor_id], references: [id])
+  student_id String
+  student    User     @relation("Student", fields: [student_id], references: [id])
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([mentor_id, student_id])
+  @@index([mentor_id])
+  @@index([student_id])
+}
+
+model AcademicRecord {
+  id         String        @id @default(cuid())
+  user_id    String
+  user       User          @relation(fields: [user_id], references: [id])
+  level      AcademicLevel
+  granted_by String?
+  granted_at DateTime
+  program_id String?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([level])
+}
+
+model SpeakerProfile {
+  id          String   @id @default(cuid())
+  user_id     String   @unique
+  user        User     @relation(fields: [user_id], references: [id])
+  bio         String?
+  specialties String[]
+  rating      Decimal  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

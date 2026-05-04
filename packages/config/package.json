@@ -1,0 +1,26 @@
+{
+  "name": "@academy/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Общие пресеты: TypeScript + ESLint",
+  "type": "module",
+  "files": [
+    "tsconfig",
+    "eslint"
+  ],
+  "exports": {
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
+    "./tsconfig/node-lib.json": "./tsconfig/node-lib.json",
+    "./eslint/base.cjs": "./eslint/base.cjs",
+    "./eslint/next.cjs": "./eslint/next.cjs"
+  },
+  "scripts": {
+    "lint": "echo \"@academy/config: presets-only, no lint\" && exit 0",
+    "typecheck": "echo \"@academy/config: presets-only, no typecheck\" && exit 0",
+    "clean": "rimraf .turbo"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}
