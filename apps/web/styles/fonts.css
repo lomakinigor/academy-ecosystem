@@ -1,0 +1,14 @@
+/*
+  Шрифты подключены через @import в globals.css из @academy/ui/styles.
+  Этот файл — точка расширения для локальных font-face apps/web,
+  если понадобится self-host шрифтов вместо Google Fonts.
+
+  Пример (раскомментировать при self-host):
+
+  @font-face {
+    font-family: 'Playfair Display';
+    src: url('/fonts/PlayfairDisplay-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+  }
+*/
