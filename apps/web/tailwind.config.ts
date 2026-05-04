@@ -1,20 +1,14 @@
 import type { Config } from "tailwindcss";
 
-/**
- * Минимальная Tailwind-конфигурация — каркас.
- * Полную дизайн-систему (токены, шрифты, темы) настраивает Agent UI
- * в packages/ui и расширяет этот конфиг через preset.
- */
+import preset from "@academy/ui/tailwind-preset";
+
 const config: Config = {
+  presets: [preset],
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
   ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
 };
 
 export default config;
