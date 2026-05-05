@@ -99,6 +99,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.1
         version: 4.7.0(vite@5.4.21(@types/node@20.19.39))
+      dotenv-cli:
+        specifier: ^11.0.0
+        version: 11.0.0
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1
@@ -151,10 +154,16 @@ importers:
       '@prisma/client':
         specifier: ^5.14.0
         version: 5.22.0(prisma@5.22.0)
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
     devDependencies:
       '@academy/config':
         specifier: workspace:*
         version: link:../config
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
       '@types/node':
         specifier: ^20.11.0
         version: 20.19.39

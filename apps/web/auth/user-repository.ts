@@ -1,12 +1,6 @@
-import type { SessionUser } from "@/lib/auth/types";
+import { prisma } from "@academy/db";
 
-// Stub repository — Agent CORE will swap this out for a Prisma-backed implementation
-// reading from `packages/db`. The interface is what NextAuth's authorize() needs.
-//
-// Required by CORE before auth is production-ready:
-//   - User table with fields: id, email, password_hash, name, system_role,
-//     academic_level, branch_id, is_speaker
-//   - bcrypt-hashed passwords (NextAuth never sees plaintext at rest)
+import type { SessionUser, SystemRole, AcademicLevel } from "@/lib/auth/types";
 
 export interface UserRecord extends SessionUser {
   password_hash: string;
@@ -16,9 +10,34 @@ export interface UserRepository {
   findByEmail(email: string): Promise<UserRecord | null>;
 }
 
-// Dev-only in-memory repo so /login is testable before CORE merges Prisma.
-// Replace `defaultUserRepository` import in auth/config.ts with the Prisma-backed one.
-class InMemoryUserRepository implements UserRepository {
+/**
+ * Prisma-backed репо — читает юзеров из БД (см. db:seed).
+ * Юзеры без password_hash не могут логиниться и игнорируются.
+ */
+class PrismaUserRepository implements UserRepository {
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    const normalized = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({
+      where: { email: normalized },
+    });
+    if (!user || !user.password_hash) return null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      system_role: user.system_role as SystemRole,
+      academic_level: user.academic_level as AcademicLevel,
+      branch_id: user.branch_id,
+      is_speaker: user.is_speaker,
+      password_hash: user.password_hash,
+    };
+  }
+}
+
+/**
+ * In-memory репо — для unit-тестов; не использовать в проде.
+ */
+export class InMemoryUserRepository implements UserRepository {
   private readonly users: UserRecord[] = [];
 
   async findByEmail(email: string): Promise<UserRecord | null> {
@@ -26,10 +45,9 @@ class InMemoryUserRepository implements UserRepository {
     return this.users.find((u) => u.email.toLowerCase() === normalized) ?? null;
   }
 
-  // For tests/seeding only.
   _seed(user: UserRecord): void {
     this.users.push(user);
   }
 }
 
-export const defaultUserRepository = new InMemoryUserRepository();
+export const defaultUserRepository: UserRepository = new PrismaUserRepository();

@@ -90,6 +90,7 @@ model User {
   id             String        @id @default(cuid())
   email          String        @unique
   name           String
+  password_hash  String?
   phone          String?
   avatar         String?
   system_role    SystemRole    @default(STUDENT)

@@ -6,14 +6,22 @@ import {
   EventStatus,
   PricingType,
 } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
+// Единый dev-пароль для всех seed-юзеров.
+// В проде регистрация будет хэшировать индивидуальные пароли.
+const DEV_PASSWORD = "academy123";
+
 async function main() {
   console.log("🌱 Seeding Academy database...");
+
+  const passwordHash = bcrypt.hashSync(DEV_PASSWORD, 8);
+  console.log(`✓ Dev password "${DEV_PASSWORD}" hashed for all seed users`);
 
   // ── Branches ─────────────────────────────────────────────
   const moscow = await prisma.branch.upsert({
@@ -84,8 +92,9 @@ async function main() {
   // ── Users ────────────────────────────────────────────────
   const founder = await prisma.user.upsert({
     where: { email: "svetlov@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "svetlov@academy.ru",
       name: "В.Ю. Светлов",
       system_role: SystemRole.PRESIDENT,
@@ -98,8 +107,9 @@ async function main() {
 
   const vicePresident = await prisma.user.upsert({
     where: { email: "vp@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "vp@academy.ru",
       name: "Анна Вице-президент",
       system_role: SystemRole.VICE_PRESIDENT,
@@ -112,8 +122,9 @@ async function main() {
 
   const directorMsk = await prisma.user.upsert({
     where: { email: "director.msk@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "director.msk@academy.ru",
       name: "Иван Директор (Москва)",
       system_role: SystemRole.BRANCH_DIRECTOR,
@@ -126,8 +137,9 @@ async function main() {
 
   const directorEkb = await prisma.user.upsert({
     where: { email: "director.ekb@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "director.ekb@academy.ru",
       name: "Ольга Директор (Екатеринбург)",
       system_role: SystemRole.BRANCH_DIRECTOR,
@@ -140,8 +152,9 @@ async function main() {
 
   const adminChel = await prisma.user.upsert({
     where: { email: "admin.chel@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "admin.chel@academy.ru",
       name: "Мария Админ (Челябинск)",
       system_role: SystemRole.BRANCH_ADMIN,
@@ -154,8 +167,9 @@ async function main() {
 
   const masterChel = await prisma.user.upsert({
     where: { email: "master.chel@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "master.chel@academy.ru",
       name: "Пётр Мастер (Челябинск)",
       system_role: SystemRole.STUDENT,
@@ -168,8 +182,9 @@ async function main() {
 
   const masterEkb = await prisma.user.upsert({
     where: { email: "master.ekb@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "master.ekb@academy.ru",
       name: "Дмитрий Мастер (Екатеринбург)",
       system_role: SystemRole.STUDENT,
@@ -182,8 +197,9 @@ async function main() {
 
   const listenerMsk = await prisma.user.upsert({
     where: { email: "listener.msk@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "listener.msk@academy.ru",
       name: "Елена Слушатель (Москва)",
       system_role: SystemRole.STUDENT,
@@ -196,8 +212,9 @@ async function main() {
 
   const listenerChel = await prisma.user.upsert({
     where: { email: "listener.chel@academy.ru" },
-    update: {},
+    update: { password_hash: passwordHash },
     create: {
+      password_hash: passwordHash,
       email: "listener.chel@academy.ru",
       name: "Сергей Слушатель (Челябинск)",
       system_role: SystemRole.STUDENT,
