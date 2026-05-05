@@ -37,13 +37,28 @@ enum EventStatus {
   CANCELLED
 }
 
+// Направления академии — соответствуют публикуемым в расписании
+// (Семинары / Практики / Вебинары / Курсы / Ритриты / Путешествия).
+// MASTERCLASS и GRADING — внутренние категории, не показываются в публичных
+// фильтрах, но нужны для академического учёта.
 enum EventType {
   SEMINAR
   PRACTICE
-  MASTERCLASS
+  WEBINAR
+  COURSE
+  RETREAT
   TRIP
+  MASTERCLASS
   GRADING
-  ONLINE
+}
+
+// Тип ценообразования. price (Decimal?) хранит сумму для FIXED;
+// для DONATION/FREE может быть null. pricing_note — свободный текст
+// для сложных tier'ов («до 15.03 — 29000, далее — 30000»).
+enum PricingType {
+  FIXED
+  DONATION
+  FREE
 }
 
 enum BookingStatus {
@@ -107,6 +122,14 @@ model Branch {
   city    String
   country String  @default("RU")
 
+  // Контактные данные филиала (показываются в футере календаря/афиш)
+  address        String?
+  entrance_code  String?
+  contact_phones String[]
+  // IANA timezone — события филиала рендерим в этой зоне
+  // ("Europe/Moscow", "Asia/Yekaterinburg" и т.п.)
+  timezone       String?
+
   users  User[]
   events Event[]
 
@@ -124,10 +147,26 @@ model Event {
   end_at           DateTime
   speaker_id       String
   speaker          User        @relation("EventSpeaker", fields: [speaker_id], references: [id])
-  branch_id        String
-  branch           Branch      @relation(fields: [branch_id], references: [id])
+
+  // branch_id nullable — null означает «общеакадемическое событие, все филиалы»
+  branch_id        String?
+  branch           Branch?     @relation(fields: [branch_id], references: [id])
+
   max_participants Int?
+
+  // Pricing
+  pricing_type     PricingType @default(FIXED)
   price            Decimal?
+  // Свободный текст для сложных tier'ов / донат-минимума
+  pricing_note     String?
+
+  // Модификатор формата (для любого type — например, онлайн-семинар)
+  is_online        Boolean     @default(false)
+
+  // Расширяемые лейблы: "с детьми", "допуск после знакомства",
+  // "открытое занятие", "СВЕТЛОЯР" и т.п.
+  tags             String[]
+
   is_grading       Boolean     @default(false)
   program_id       String?
 
@@ -139,6 +178,7 @@ model Event {
   @@index([speaker_id])
   @@index([status])
   @@index([start_at])
+  @@index([type])
 }
 
 model Booking {

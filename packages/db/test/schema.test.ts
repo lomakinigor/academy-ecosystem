@@ -4,10 +4,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const schema = readFileSync(
-  resolve(here, "../prisma/schema.prisma"),
-  "utf-8",
-);
+const schema = readFileSync(resolve(here, "../prisma/schema.prisma"), "utf-8");
 
 const block = (model: string): string => {
   const m = schema.match(new RegExp(`model ${model}\\s*\\{([\\s\\S]+?)\\n\\}`));
@@ -23,29 +20,15 @@ const enumBody = (name: string): string => {
 
 describe("Prisma schema — enums (двойная иерархия)", () => {
   const cases: Array<[string, string[]]> = [
-    [
-      "SystemRole",
-      [
-        "PRESIDENT",
-        "VICE_PRESIDENT",
-        "BRANCH_DIRECTOR",
-        "BRANCH_ADMIN",
-        "STUDENT",
-      ],
-    ],
+    ["SystemRole", ["PRESIDENT", "VICE_PRESIDENT", "BRANCH_DIRECTOR", "BRANCH_ADMIN", "STUDENT"]],
     ["AcademicLevel", ["FOUNDER", "MAGISTER", "MASTER", "LISTENER"]],
-    [
-      "EventStatus",
-      ["DRAFT", "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"],
-    ],
+    ["EventStatus", ["DRAFT", "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]],
     [
       "EventType",
-      ["SEMINAR", "PRACTICE", "MASTERCLASS", "TRIP", "GRADING", "ONLINE"],
+      ["SEMINAR", "PRACTICE", "WEBINAR", "COURSE", "RETREAT", "TRIP", "MASTERCLASS", "GRADING"],
     ],
-    [
-      "BookingStatus",
-      ["PENDING", "CONFIRMED", "WAITLIST", "CANCELLED", "ATTENDED"],
-    ],
+    ["PricingType", ["FIXED", "DONATION", "FREE"]],
+    ["BookingStatus", ["PENDING", "CONFIRMED", "WAITLIST", "CANCELLED", "ATTENDED"]],
     ["PaymentStatus", ["PENDING", "COMPLETED", "FAILED", "REFUNDED"]],
     ["PaymentType", ["BOOKING", "REFERRAL_BONUS", "EXECUTOR_PAYOUT"]],
   ];
@@ -83,13 +66,32 @@ describe("Prisma schema — модели", () => {
     expect(body).toMatch(/referral_code\s+String\?\s+@unique/);
   });
 
-  it("Event имеет связи speaker и branch, индексы по start_at и status", () => {
+  it("Event имеет связи speaker и branch, индексы по start_at, status, type", () => {
     const body = block("Event");
     expect(body).toMatch(/speaker_id\s+String/);
-    expect(body).toMatch(/branch_id\s+String/);
+    // branch_id nullable — событие может быть общеакадемическим
+    expect(body).toMatch(/branch_id\s+String\?/);
     expect(body).toMatch(/@@index\(\[start_at\]\)/);
     expect(body).toMatch(/@@index\(\[status\]\)/);
     expect(body).toMatch(/@@index\(\[branch_id\]\)/);
+    expect(body).toMatch(/@@index\(\[type\]\)/);
+  });
+
+  it("Event содержит pricing-поля и расширяемые лейблы", () => {
+    const body = block("Event");
+    expect(body).toMatch(/pricing_type\s+PricingType/);
+    expect(body).toMatch(/price\s+Decimal\?/);
+    expect(body).toMatch(/pricing_note\s+String\?/);
+    expect(body).toMatch(/is_online\s+Boolean/);
+    expect(body).toMatch(/tags\s+String\[\]/);
+  });
+
+  it("Branch содержит контактные данные и timezone", () => {
+    const body = block("Branch");
+    expect(body).toMatch(/address\s+String\?/);
+    expect(body).toMatch(/entrance_code\s+String\?/);
+    expect(body).toMatch(/contact_phones\s+String\[\]/);
+    expect(body).toMatch(/timezone\s+String\?/);
   });
 
   it("MentorRelation уникален по паре mentor/student", () => {

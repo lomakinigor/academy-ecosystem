@@ -12,9 +12,21 @@ describe("Seed — филиалы", () => {
     expect(seed).toMatch(/branch_moscow/);
   });
 
+  it("создаёт филиал Екатеринбург", () => {
+    expect(seed).toMatch(/Екатеринбург/);
+    expect(seed).toMatch(/branch_yekaterinburg/);
+  });
+
   it("создаёт филиал Челябинск", () => {
     expect(seed).toMatch(/Челябинск/);
     expect(seed).toMatch(/branch_chelyabinsk/);
+  });
+
+  it("филиалы имеют timezone и контактные данные", () => {
+    expect(seed).toMatch(/Europe\/Moscow/);
+    expect(seed).toMatch(/Asia\/Yekaterinburg/);
+    expect(seed).toMatch(/contact_phones:/);
+    expect(seed).toMatch(/entrance_code:/);
   });
 });
 
@@ -35,16 +47,44 @@ describe("Seed — покрытие двойной иерархии", () => {
   });
 });
 
-describe("Seed — мероприятия 5 разных типов", () => {
+describe("Seed — мероприятия всех типов", () => {
   const types = [
     "EventType.SEMINAR",
     "EventType.PRACTICE",
-    "EventType.MASTERCLASS",
+    "EventType.WEBINAR",
+    "EventType.COURSE",
+    "EventType.RETREAT",
     "EventType.TRIP",
+    "EventType.MASTERCLASS",
     "EventType.GRADING",
   ];
   it.each(types)("использует %s", (t) => {
     expect(seed).toContain(t);
+  });
+});
+
+describe("Seed — pricing и метаданные событий", () => {
+  it("использует все три типа ценообразования", () => {
+    expect(seed).toMatch(/PricingType\.FIXED/);
+    expect(seed).toMatch(/PricingType\.DONATION/);
+    expect(seed).toMatch(/PricingType\.FREE/);
+  });
+
+  it("содержит онлайн-событие", () => {
+    expect(seed).toMatch(/is_online:\s*true/);
+  });
+
+  it("содержит общеакадемическое событие (branch_id=null)", () => {
+    expect(seed).toMatch(/branch_id:\s*null/);
+  });
+
+  it("содержит многодневный семинар через program_id", () => {
+    expect(seed).toMatch(/program_id:\s*"seminar_temple_3"/);
+  });
+
+  it("содержит теги расширяемых лейблов", () => {
+    expect(seed).toMatch(/"с детьми"/);
+    expect(seed).toMatch(/"допуск после знакомства"/);
   });
 });
 
@@ -57,8 +97,11 @@ describe("Seed — идемпотентность", () => {
     expect(seed).toMatch(/prisma\.user\.upsert/);
   });
 
-  it("события создаются через upsert", () => {
-    expect(seed).toMatch(/prisma\.event\.upsert/);
+  it("события пересоздаются: deleteMany + create", () => {
+    // Прямое upsert не подходит из-за breaking-изменений в схеме (новые required-поля).
+    // Идемпотентность достигается через чистку и переcоздание.
+    expect(seed).toMatch(/prisma\.event\.deleteMany/);
+    expect(seed).toMatch(/prisma\.event\.create/);
   });
 
   it("speaker profiles создаются через upsert", () => {
