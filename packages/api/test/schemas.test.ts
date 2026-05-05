@@ -1,19 +1,13 @@
 import { describe, it, expect } from "vitest";
-import {
-  userBaseSchema,
-  systemRoleSchema,
-  academicLevelSchema,
-} from "../src/schemas/user";
+import { userBaseSchema, systemRoleSchema, academicLevelSchema } from "../src/schemas/user";
 import {
   eventCreateSchema,
   eventTypeSchema,
   eventStatusSchema,
+  pricingTypeSchema,
+  eventListInputSchema,
 } from "../src/schemas/event";
-import {
-  cuidSchema,
-  paginationSchema,
-  branchIdSchema,
-} from "../src/schemas/common";
+import { cuidSchema, paginationSchema, branchIdSchema } from "../src/schemas/common";
 
 describe("userBaseSchema", () => {
   it("принимает валидный профиль и применяет дефолты", () => {
@@ -24,15 +18,11 @@ describe("userBaseSchema", () => {
   });
 
   it("отклоняет невалидный email", () => {
-    expect(() =>
-      userBaseSchema.parse({ email: "broken", name: "x" }),
-    ).toThrow();
+    expect(() => userBaseSchema.parse({ email: "broken", name: "x" })).toThrow();
   });
 
   it("отклоняет некорректный телефон", () => {
-    expect(() =>
-      userBaseSchema.parse({ email: "a@a.ru", name: "x", phone: "ab" }),
-    ).toThrow();
+    expect(() => userBaseSchema.parse({ email: "a@a.ru", name: "x", phone: "ab" })).toThrow();
   });
 
   it("принимает корректный российский телефон", () => {
@@ -51,13 +41,7 @@ describe("userBaseSchema", () => {
 
 describe("enum schemas (двойная иерархия)", () => {
   it("systemRoleSchema принимает все 5 административных ролей", () => {
-    for (const r of [
-      "PRESIDENT",
-      "VICE_PRESIDENT",
-      "BRANCH_DIRECTOR",
-      "BRANCH_ADMIN",
-      "STUDENT",
-    ]) {
+    for (const r of ["PRESIDENT", "VICE_PRESIDENT", "BRANCH_DIRECTOR", "BRANCH_ADMIN", "STUDENT"]) {
       expect(systemRoleSchema.parse(r)).toBe(r);
     }
   });
@@ -96,46 +80,100 @@ describe("eventCreateSchema", () => {
   });
 
   it("отклоняет end_at <= start_at", () => {
-    expect(() =>
-      eventCreateSchema.parse({ ...base, end_at: base.start_at }),
-    ).toThrow(/end_at/);
+    expect(() => eventCreateSchema.parse({ ...base, end_at: base.start_at })).toThrow(/end_at/);
   });
 
   it("требует title не короче 3 символов", () => {
-    expect(() =>
-      eventCreateSchema.parse({ ...base, title: "ab" }),
-    ).toThrow();
+    expect(() => eventCreateSchema.parse({ ...base, title: "ab" })).toThrow();
   });
 
   it("отклоняет отрицательную цену", () => {
-    expect(() =>
-      eventCreateSchema.parse({ ...base, price: -100 }),
-    ).toThrow();
+    expect(() => eventCreateSchema.parse({ ...base, price: -100 })).toThrow();
   });
 
-  it("eventTypeSchema принимает все 6 типов", () => {
+  it("eventTypeSchema принимает все 8 типов", () => {
     for (const t of [
       "SEMINAR",
       "PRACTICE",
-      "MASTERCLASS",
+      "WEBINAR",
+      "COURSE",
+      "RETREAT",
       "TRIP",
+      "MASTERCLASS",
       "GRADING",
-      "ONLINE",
     ]) {
       expect(eventTypeSchema.parse(t)).toBe(t);
     }
   });
 
+  it("pricingTypeSchema принимает FIXED/DONATION/FREE", () => {
+    for (const p of ["FIXED", "DONATION", "FREE"]) {
+      expect(pricingTypeSchema.parse(p)).toBe(p);
+    }
+  });
+
+  it("eventCreateSchema допускает branch_id=null (общеакадемическое)", () => {
+    const r = eventCreateSchema.parse({ ...base, branch_id: null });
+    expect(r.branch_id).toBeNull();
+  });
+
+  it("eventCreateSchema применяет дефолты pricing_type=FIXED, is_online=false, tags=[]", () => {
+    const r = eventCreateSchema.parse(base);
+    expect(r.pricing_type).toBe("FIXED");
+    expect(r.is_online).toBe(false);
+    expect(r.tags).toEqual([]);
+  });
+
   it("eventStatusSchema принимает все 5 статусов", () => {
-    for (const s of [
-      "DRAFT",
-      "PLANNED",
-      "ACTIVE",
-      "COMPLETED",
-      "CANCELLED",
-    ]) {
+    for (const s of ["DRAFT", "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]) {
       expect(eventStatusSchema.parse(s)).toBe(s);
     }
+  });
+});
+
+describe("eventListInputSchema", () => {
+  const range = {
+    from: "2026-05-01T00:00:00Z",
+    to: "2026-05-31T23:59:59Z",
+  };
+
+  it("принимает минимальный валидный диапазон", () => {
+    const r = eventListInputSchema.parse(range);
+    expect(r.from).toBeInstanceOf(Date);
+    expect(r.to).toBeInstanceOf(Date);
+  });
+
+  it("отклоняет to < from", () => {
+    expect(() =>
+      eventListInputSchema.parse({
+        from: "2026-05-31T00:00:00Z",
+        to: "2026-05-01T00:00:00Z",
+      }),
+    ).toThrow(/to/);
+  });
+
+  it("принимает все опциональные фильтры", () => {
+    const r = eventListInputSchema.parse({
+      ...range,
+      branch_id: "branch_msk",
+      types: ["SEMINAR", "WEBINAR"],
+      speaker_id: "u1",
+      search: "храм",
+      is_online: true,
+      tags: ["с детьми"],
+    });
+    expect(r.types).toEqual(["SEMINAR", "WEBINAR"]);
+    expect(r.tags).toEqual(["с детьми"]);
+    expect(r.is_online).toBe(true);
+  });
+
+  it("принимает branch_id=null (общеакадемические события)", () => {
+    const r = eventListInputSchema.parse({ ...range, branch_id: null });
+    expect(r.branch_id).toBeNull();
+  });
+
+  it("отклоняет неизвестный EventType", () => {
+    expect(() => eventListInputSchema.parse({ ...range, types: ["ONLINE"] })).toThrow();
   });
 });
 
