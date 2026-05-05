@@ -2,14 +2,13 @@
   "name": "@academy/api",
   "version": "0.1.0",
   "private": true,
-  "description": "tRPC \u0440\u043e\u0443\u0442\u0435\u0440\u044b \u0438 Zod \u0441\u0445\u0435\u043c\u044b \u0410\u043a\u0430\u0434\u0435\u043c\u0438\u0438",
+  "description": "tRPC роутеры и Zod схемы Академии",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./root": "./src/root.ts",
-    "./trpc": "./src/trpc.ts",
-    "./schemas": "./src/schemas/index.ts"
+    "./trpc": "./src/trpc.ts"
   },
   "scripts": {
     "lint": "echo \"@academy/api: lint stub\" && exit 0",
@@ -19,13 +18,13 @@
     "clean": "rimraf .turbo dist"
   },
   "dependencies": {
-    "@academy/db": "*",
+    "@academy/db": "workspace:*",
     "@trpc/server": "^10.45.2",
     "superjson": "^2.2.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@academy/config": "*",
+    "@academy/config": "workspace:*",
     "@types/node": "^20.11.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
