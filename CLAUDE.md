@@ -306,7 +306,7 @@ model SpeakerProfile {
 | --------------------------------------- | ---- | ------------------------------------------------------- |
 | Auth + RBAC (двойная иерархия)          | 0    | 🟡 In progress (in-memory repo, ждёт Prisma из Этапа 1) |
 | Дизайн-система + компоненты             | 0    | ✅ Done (см. docs/features/ui-integration/)             |
-| Визуальный календарь + расписание       | 1    | 🔲 TODO                                                 |
+| Визуальный календарь + расписание       | 1    | ✅ Done (см. docs/features/calendar-mvp/)               |
 | CRUD мероприятий (Mobile-First)         | 1    | 🔲 TODO                                                 |
 | Admin Dashboard + аналитика сети        | 1    | 🔲 TODO                                                 |
 | ЛК слушателя                            | 1    | 🔲 TODO                                                 |
