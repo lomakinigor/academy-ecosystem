@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@acad
 import { auth } from "@/auth";
 import { BrandMark } from "@/components/brand/brand-mark";
 
-import { LoginForm } from "./login-form";
+import { SignupForm } from "./signup-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
 }: {
-  searchParams?: { callbackUrl?: string; registered?: string };
+  searchParams?: { callbackUrl?: string };
 }) {
   const session = await auth();
   if (session?.user) {
@@ -21,33 +21,29 @@ export default async function LoginPage({
   }
 
   const callbackUrl = searchParams?.callbackUrl;
-  const signupHref = callbackUrl
-    ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
-    : "/signup";
-  const justRegistered = searchParams?.registered === "1";
+  const loginHref = callbackUrl
+    ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/login";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-brand-warm px-4 py-12">
       <Card className="w-full max-w-md bg-white/90 backdrop-blur">
         <CardHeader className="items-center text-center">
           <BrandMark size={64} className="mb-4" />
-          <CardTitle className="font-display text-2xl">Вход в Академию</CardTitle>
-          <CardDescription>Используйте email и пароль, чтобы войти</CardDescription>
+          <CardTitle className="font-display text-2xl">Регистрация</CardTitle>
+          <CardDescription>
+            Создайте аккаунт, чтобы записываться на мероприятия академии
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          {justRegistered ? (
-            <p role="status" className="rounded-md bg-success/10 px-3 py-2 text-sm text-success">
-              Аккаунт создан. Войдите, используя ваш email и пароль.
-            </p>
-          ) : null}
-          <LoginForm callbackUrl={callbackUrl} />
+          <SignupForm callbackUrl={callbackUrl} />
           <p className="text-center text-sm text-foreground/70">
-            Нет аккаунта?{" "}
+            Уже есть аккаунт?{" "}
             <Link
-              href={signupHref}
+              href={loginHref}
               className="font-medium text-brand-primary underline-offset-4 hover:underline"
             >
-              Зарегистрироваться
+              Войти
             </Link>
           </p>
         </CardContent>

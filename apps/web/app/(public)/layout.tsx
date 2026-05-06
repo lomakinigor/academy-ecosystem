@@ -65,12 +65,20 @@ export default async function PublicLayout({ children }: { children: ReactNode }
                 <LogoutButton />
               </>
             ) : (
-              <Button asChild variant="accent" size="sm">
-                <Link href="/login">
-                  <LogIn className="mr-2 size-4" aria-hidden />
-                  Войти
+              <>
+                <Link
+                  href="/signup"
+                  className="hidden text-sm font-medium text-brand-primary underline-offset-4 hover:underline sm:inline"
+                >
+                  Регистрация
                 </Link>
-              </Button>
+                <Button asChild variant="accent" size="sm">
+                  <Link href="/login">
+                    <LogIn className="mr-2 size-4" aria-hidden />
+                    Войти
+                  </Link>
+                </Button>
+              </>
             )}
           </div>
         </div>

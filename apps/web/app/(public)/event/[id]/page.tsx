@@ -104,12 +104,12 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             </p>
           )}
 
-          <dl className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-2">
               <Calendar className="size-4 text-foreground/50" aria-hidden />
               <div>
-                <dt className="text-xs uppercase tracking-wider text-foreground/50">Дата</dt>
-                <dd className="font-medium text-brand-primary">{formatDate(event.start_at)}</dd>
+                <div className="text-xs uppercase tracking-wider text-foreground/50">Дата</div>
+                <div className="font-medium text-brand-primary">{formatDate(event.start_at)}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -121,17 +121,17 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             <div className="flex items-center gap-2">
               <User2 className="size-4 text-foreground/50" aria-hidden />
               <div>
-                <dt className="text-xs uppercase tracking-wider text-foreground/50">Спикер</dt>
-                <dd className="font-medium text-brand-primary">{event.speaker.name}</dd>
+                <div className="text-xs uppercase tracking-wider text-foreground/50">Спикер</div>
+                <div className="font-medium text-brand-primary">{event.speaker.name}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="size-4 text-foreground/50" aria-hidden />
               <div>
-                <dt className="text-xs uppercase tracking-wider text-foreground/50">Место</dt>
-                <dd className="font-medium text-brand-primary">
+                <div className="text-xs uppercase tracking-wider text-foreground/50">Место</div>
+                <div className="font-medium text-brand-primary">
                   {event.branch ? `${event.branch.city} · ${event.branch.name}` : "Все филиалы"}
-                </dd>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -148,14 +148,16 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
               <div className="flex items-center gap-2">
                 <Users className="size-4 text-foreground/50" aria-hidden />
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-foreground/50">Записано</dt>
-                  <dd className="font-medium text-brand-primary">
+                  <div className="text-xs uppercase tracking-wider text-foreground/50">
+                    Записано
+                  </div>
+                  <div className="font-medium text-brand-primary">
                     {event._count.bookings} / {event.max_participants}
-                  </dd>
+                  </div>
                 </div>
               </div>
             )}
-          </dl>
+          </div>
 
           <div className="mt-8 border-t border-border pt-6">
             {justBooked && (
@@ -174,13 +176,20 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             ) : !user ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-foreground/70">
-                  Чтобы записаться на мероприятие, войдите в аккаунт.
+                  Чтобы записаться, войдите в аккаунт или зарегистрируйтесь.
                 </p>
-                <Button asChild variant="accent" size="lg">
-                  <Link href={`/login?callbackUrl=${encodeURIComponent(`/event/${event.id}`)}`}>
-                    Войти и записаться
-                  </Link>
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button asChild variant="outline" size="lg">
+                    <Link href={`/login?callbackUrl=${encodeURIComponent(`/event/${event.id}`)}`}>
+                      Войти
+                    </Link>
+                  </Button>
+                  <Button asChild variant="accent" size="lg">
+                    <Link href={`/signup?callbackUrl=${encodeURIComponent(`/event/${event.id}`)}`}>
+                      Зарегистрироваться
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ) : myBooking ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
