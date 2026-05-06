@@ -1,7 +1,16 @@
 import type { Prisma } from "@academy/db";
+import { TRPCError } from "@trpc/server";
 import { router, protectedBranchProcedure } from "../trpc";
-import { eventListInputSchema, type EventListInput } from "../schemas/event";
+import {
+  eventByIdSchema,
+  eventCreateSchema,
+  eventDeleteSchema,
+  eventListInputSchema,
+  eventUpdateSchema,
+  type EventListInput,
+} from "../schemas/event";
 import type { BranchScope } from "../trpc";
+import type { SessionUser } from "../context";
 
 /**
  * Собирает Prisma where для event.list.
@@ -73,6 +82,79 @@ export const buildEventListWhere = (
 
 const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
 
+/**
+ * Кто имеет право создавать/редактировать/удалять события.
+ * - PRESIDENT/VP — везде
+ * - BRANCH_DIRECTOR/BRANCH_ADMIN — только свой филиал и общеакадемические
+ * - Магистры/Мастера (academic_level >= MASTER) — только свой филиал и общеакадемические
+ * - Все остальные — UNAUTHORIZED
+ */
+const ACADEMIC_LEVEL_RANK: Record<string, number> = {
+  LISTENER: 0,
+  MASTER: 1,
+  MAGISTER: 2,
+  FOUNDER: 3,
+};
+
+const SYSTEM_ROLE_RANK: Record<string, number> = {
+  STUDENT: 0,
+  BRANCH_ADMIN: 1,
+  BRANCH_DIRECTOR: 2,
+  VICE_PRESIDENT: 3,
+  PRESIDENT: 4,
+};
+
+export const canAuthorEvents = (user: SessionUser): boolean => {
+  const adminEnough = (SYSTEM_ROLE_RANK[user.system_role] ?? 0) >= 1; // BRANCH_ADMIN+
+  const academicEnough = (ACADEMIC_LEVEL_RANK[user.academic_level] ?? 0) >= 1; // MASTER+
+  return adminEnough || academicEnough;
+};
+
+/**
+ * Может ли юзер писать в указанный branch_id (с учётом scope).
+ * branch_id=null (общеакадемическое) могут редактировать только global-юзеры.
+ * undefined здесь невалидное значение — резолвится до этой проверки.
+ */
+export const canWriteToBranch = (scope: BranchScope, branchId: string | null): boolean => {
+  if (scope.mode === "global") return true;
+  if (branchId === null) return false; // только global редактирует общие
+  return branchId === scope.branch_id;
+};
+
+/**
+ * Резолвит branch_id для create/update с учётом scope.
+ * Если input не указан — для global → null (общее), для scoped → свой филиал.
+ */
+export const resolveBranchId = (
+  scope: BranchScope,
+  input: string | null | undefined,
+): string | null => {
+  if (input !== undefined) return input;
+  if (scope.mode === "global") return null;
+  return scope.branch_id;
+};
+
+const assertCanAuthor = (user: SessionUser) => {
+  if (!canAuthorEvents(user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Недостаточно прав для управления событиями",
+    });
+  }
+};
+
+const assertBranchWrite = (scope: BranchScope, branchId: string | null) => {
+  if (!canWriteToBranch(scope, branchId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        branchId === null
+          ? "Только PRESIDENT/VICE_PRESIDENT может управлять общеакадемическими событиями"
+          : "Можно управлять только событиями своего филиала",
+    });
+  }
+};
+
 export const eventRouter = router({
   list: protectedBranchProcedure.input(eventListInputSchema).query(async ({ ctx, input }) => {
     const where = buildEventListWhere(input, ctx.branchScope);
@@ -99,5 +181,97 @@ export const eventRouter = router({
       total: events.length,
       byDay,
     };
+  }),
+
+  byId: protectedBranchProcedure.input(eventByIdSchema).query(async ({ ctx, input }) => {
+    const event = await ctx.prisma.event.findUnique({
+      where: { id: input.id },
+      include: {
+        branch: { select: { id: true, name: true, city: true } },
+        speaker: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
+    }
+    // Branch isolation для read: scoped юзер видит только свой + null
+    if (ctx.branchScope.mode === "scoped") {
+      if (event.branch_id !== null && event.branch_id !== ctx.branchScope.branch_id) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+    }
+    return event;
+  }),
+
+  create: protectedBranchProcedure.input(eventCreateSchema).mutation(async ({ ctx, input }) => {
+    assertCanAuthor(ctx.user);
+    const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
+    assertBranchWrite(ctx.branchScope, branchId);
+
+    const created = await ctx.prisma.event.create({
+      data: {
+        title: input.title,
+        description: input.description,
+        type: input.type,
+        status: input.status,
+        start_at: input.start_at,
+        end_at: input.end_at,
+        speaker_id: input.speaker_id,
+        branch_id: branchId,
+        max_participants: input.max_participants,
+        pricing_type: input.pricing_type,
+        price: input.price,
+        pricing_note: input.pricing_note,
+        is_online: input.is_online,
+        tags: input.tags,
+        is_grading: input.is_grading,
+        program_id: input.program_id,
+      },
+    });
+    return created;
+  }),
+
+  update: protectedBranchProcedure.input(eventUpdateSchema).mutation(async ({ ctx, input }) => {
+    assertCanAuthor(ctx.user);
+
+    const existing = await ctx.prisma.event.findUnique({
+      where: { id: input.id },
+      select: { id: true, branch_id: true },
+    });
+    if (!existing) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
+    }
+
+    // Юзер должен иметь права на ТЕКУЩИЙ branch события
+    assertBranchWrite(ctx.branchScope, existing.branch_id);
+    // И на НОВЫЙ branch если он меняется
+    if (input.branch_id !== undefined) {
+      assertBranchWrite(ctx.branchScope, input.branch_id);
+    }
+
+    const { id, ...rest } = input;
+    const updated = await ctx.prisma.event.update({
+      where: { id },
+      data: rest,
+    });
+    return updated;
+  }),
+
+  delete: protectedBranchProcedure.input(eventDeleteSchema).mutation(async ({ ctx, input }) => {
+    assertCanAuthor(ctx.user);
+
+    const existing = await ctx.prisma.event.findUnique({
+      where: { id: input.id },
+      select: { id: true, branch_id: true },
+    });
+    if (!existing) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
+    }
+    assertBranchWrite(ctx.branchScope, existing.branch_id);
+
+    // Удаляем связанные booking'и (cascade-эмуляция, т.к. в schema нет onDelete)
+    await ctx.prisma.booking.deleteMany({ where: { event_id: input.id } });
+    await ctx.prisma.event.delete({ where: { id: input.id } });
+    return { id: input.id };
   }),
 });

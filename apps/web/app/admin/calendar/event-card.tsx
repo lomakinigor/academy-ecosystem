@@ -24,6 +24,7 @@ export interface EventCardData {
 
 interface EventCardProps {
   event: EventCardData;
+  onClick?: () => void;
 }
 
 const TYPE_BADGE_VARIANT: Record<
@@ -58,7 +59,7 @@ const formatPrice = (e: EventCardData): string => {
   return e.pricing_note ? `${rub} ₽ · ${e.pricing_note}` : `${rub} ₽`;
 };
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, onClick }: EventCardProps) {
   const dayNum = event.start_at.getDate();
   const monthLabel = monthShort(event.start_at);
   const startTime = formatTime(event.start_at);
@@ -68,10 +69,23 @@ export function EventCard({ event }: EventCardProps) {
       ? Math.min(100, Math.round((event.bookings_count / event.max_participants) * 100))
       : null;
 
+  const isClickable = Boolean(onClick);
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (!onClick) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <Card
       data-testid="event-card"
-      className="overflow-hidden transition-shadow duration-250 hover:shadow-soft-md"
+      onClick={onClick}
+      onKeyDown={handleKey}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      className={`overflow-hidden transition-shadow duration-250 hover:shadow-soft-md ${isClickable ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2" : ""}`}
     >
       <CardContent className="flex gap-4 p-4 sm:p-5">
         {/* Date column */}
@@ -108,7 +122,7 @@ export function EventCard({ event }: EventCardProps) {
             <p className="mt-1 line-clamp-2 text-sm text-foreground/70">{event.description}</p>
           )}
 
-          <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-2 text-foreground/80">
               <User2 className="size-4 text-foreground/50" aria-hidden />
               <span>{event.speaker.name}</span>
@@ -127,7 +141,7 @@ export function EventCard({ event }: EventCardProps) {
               <span className="text-xs text-foreground/50">Стоимость</span>
               <span>{formatPrice(event)}</span>
             </div>
-          </dl>
+          </div>
 
           {capacityPct !== null && event.max_participants && (
             <div className="mt-3">
@@ -141,10 +155,12 @@ export function EventCard({ event }: EventCardProps) {
               <div
                 className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
                 role="progressbar"
-                aria-valuenow={capacityPct}
-                aria-valuemin={0}
-                aria-valuemax={100}
                 aria-label={`Заполненность ${capacityPct}%`}
+                {...{
+                  "aria-valuenow": capacityPct,
+                  "aria-valuemin": 0,
+                  "aria-valuemax": 100,
+                }}
               >
                 <div
                   className="h-full bg-brand-accent transition-[width] duration-350"

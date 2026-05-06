@@ -1,6 +1,8 @@
+import { requireRole } from "@/lib/auth/helpers";
+import { SystemRole } from "@/lib/auth/types";
 import { getServerCaller } from "@/lib/trpc/server";
 
-import { AgendaList } from "./agenda-list";
+import { CalendarContent } from "./calendar-content";
 import { CalendarSidebar } from "./calendar-sidebar";
 import type { EventCardData } from "./event-card";
 import { parseCalendarFilters, type EventTypeValue } from "./filters";
@@ -11,7 +13,10 @@ interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;
 }
 
+const GLOBAL_ROLES = new Set<string>([SystemRole.PRESIDENT, SystemRole.VICE_PRESIDENT]);
+
 export default async function CalendarPage({ searchParams }: PageProps) {
+  const user = await requireRole(SystemRole.BRANCH_ADMIN);
   const filters = parseCalendarFilters(searchParams);
   const caller = await getServerCaller();
 
@@ -22,7 +27,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       branch_id: filters.branch_id ?? undefined,
       types: filters.types.length > 0 ? filters.types : undefined,
       search: filters.search,
-      speaker_id: undefined, // спикер ищется через search в title
+      speaker_id: undefined,
       is_online: filters.is_online,
     }),
     caller.branch.list(),
@@ -30,7 +35,6 @@ export default async function CalendarPage({ searchParams }: PageProps) {
 
   const events: EventCardData[] = eventsResult.events
     .filter((ev) => {
-      // Текстовый фильтр по спикеру (по name) — отдельно от title-search
       if (!filters.speaker) return true;
       return ev.speaker.name.toLowerCase().includes(filters.speaker.toLowerCase());
     })
@@ -52,6 +56,27 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       bookings_count: ev._count.bookings,
     }));
 
+  const isGlobal = GLOBAL_ROLES.has(user.system_role);
+
+  // Кто может создавать/редактировать события:
+  // - global (PRES/VP) — везде
+  // - BRANCH_ADMIN+ — в своём филиале
+  // - Магистры/Мастера — в своём филиале
+  // - Listener — нельзя (фильтруется по academic_level)
+  const canAuthor =
+    isGlobal ||
+    user.system_role === SystemRole.BRANCH_DIRECTOR ||
+    user.system_role === SystemRole.BRANCH_ADMIN ||
+    user.academic_level === "MAGISTER" ||
+    user.academic_level === "MASTER" ||
+    user.academic_level === "FOUNDER";
+
+  const branchOptions = branches.map((b) => ({
+    id: b.id,
+    name: b.name,
+    city: b.city,
+  }));
+
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-6">
@@ -64,17 +89,16 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <CalendarSidebar
-          branches={branches.map((b) => ({
-            id: b.id,
-            name: b.name,
-            city: b.city,
-          }))}
-          total={events.length}
-        />
+        <CalendarSidebar branches={branchOptions} total={events.length} />
 
         <div>
-          <AgendaList events={events} />
+          <CalendarContent
+            events={events}
+            branches={branchOptions}
+            canAuthor={canAuthor}
+            canEditNullBranch={isGlobal}
+            defaultBranchId={user.branch_id}
+          />
         </div>
       </div>
     </div>

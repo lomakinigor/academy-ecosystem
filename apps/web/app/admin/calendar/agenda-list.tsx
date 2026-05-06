@@ -4,6 +4,7 @@ import { EventCard, type EventCardData } from "./event-card";
 
 interface AgendaListProps {
   events: EventCardData[];
+  onEventClick?: (event: EventCardData) => void;
 }
 
 const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
@@ -18,7 +19,7 @@ const dayLabel = (iso: string): string => {
   return `${dayPart}, ${weekdayPart}`;
 };
 
-export function AgendaList({ events }: AgendaListProps) {
+export function AgendaList({ events, onEventClick }: AgendaListProps) {
   if (events.length === 0) {
     return (
       <div
@@ -63,7 +64,11 @@ export function AgendaList({ events }: AgendaListProps) {
             </h2>
             <div className="mt-3 space-y-3">
               {dayEvents.map((ev) => (
-                <EventCard key={ev.id} event={ev} />
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  onClick={onEventClick ? () => onEventClick(ev) : undefined}
+                />
               ))}
             </div>
           </section>
