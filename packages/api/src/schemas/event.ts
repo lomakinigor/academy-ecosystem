@@ -66,6 +66,29 @@ export const eventListInputSchema = z
 export type EventListInput = z.infer<typeof eventListInputSchema>;
 
 /**
+ * Публичный список событий — без auth.
+ * Тот же shape, что eventListInputSchema, но без speaker_id (внутренний фильтр)
+ * и без branch_id (публично видны события всех филиалов).
+ * Бэкенд жёстко фильтрует только по статусам PLANNED|ACTIVE.
+ */
+export const eventPublicListInputSchema = z
+  .object({
+    from: z.coerce.date(),
+    to: z.coerce.date(),
+    branch_id: cuidSchema.nullable().optional(),
+    types: z.array(eventTypeSchema).optional(),
+    search: z.string().trim().min(1).max(200).optional(),
+    is_online: z.boolean().optional(),
+    tags: z.array(z.string().min(1).max(50)).optional(),
+  })
+  .refine((d) => d.to >= d.from, {
+    message: "to должен быть >= from",
+    path: ["to"],
+  });
+
+export type EventPublicListInput = z.infer<typeof eventPublicListInputSchema>;
+
+/**
  * Вход для event.update — все поля create-схемы опциональны;
  * id обязателен; end_at должен быть позже start_at если оба переданы.
  */

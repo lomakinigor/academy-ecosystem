@@ -1,11 +1,12 @@
 import type { Prisma } from "@academy/db";
 import { TRPCError } from "@trpc/server";
-import { router, protectedBranchProcedure } from "../trpc";
+import { router, protectedBranchProcedure, publicProcedure } from "../trpc";
 import {
   eventByIdSchema,
   eventCreateSchema,
   eventDeleteSchema,
   eventListInputSchema,
+  eventPublicListInputSchema,
   eventUpdateSchema,
   type EventListInput,
 } from "../schemas/event";
@@ -155,7 +156,82 @@ const assertBranchWrite = (scope: BranchScope, branchId: string | null) => {
   }
 };
 
+/**
+ * Публичный список событий — для главной страницы и публичных календарей.
+ * Без auth, без branch isolation (показываем все филиалы), только опубликованное:
+ * status IN (PLANNED, ACTIVE).
+ */
+const PUBLIC_VISIBLE_STATUSES = ["PLANNED", "ACTIVE"] as const;
+
 export const eventRouter = router({
+  publicList: publicProcedure.input(eventPublicListInputSchema).query(async ({ ctx, input }) => {
+    const and: Prisma.EventWhereInput[] = [
+      { start_at: { gte: input.from } },
+      { start_at: { lte: input.to } },
+      { status: { in: [...PUBLIC_VISIBLE_STATUSES] } },
+    ];
+
+    if (input.branch_id !== undefined) {
+      and.push({ branch_id: input.branch_id });
+    }
+    if (input.types && input.types.length > 0) {
+      and.push({ type: { in: input.types } });
+    }
+    if (typeof input.is_online === "boolean") {
+      and.push({ is_online: input.is_online });
+    }
+    if (input.tags && input.tags.length > 0) {
+      and.push({ tags: { hasSome: input.tags } });
+    }
+    if (input.search) {
+      and.push({
+        OR: [
+          { title: { contains: input.search, mode: "insensitive" } },
+          { description: { contains: input.search, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    const events = await ctx.prisma.event.findMany({
+      where: { AND: and },
+      orderBy: { start_at: "asc" },
+      include: {
+        branch: { select: { id: true, name: true, city: true } },
+        speaker: { select: { id: true, name: true, avatar: true } },
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    const byDay: Record<string, typeof events> = {};
+    for (const ev of events) {
+      const key = isoDay(ev.start_at);
+      if (!byDay[key]) byDay[key] = [];
+      byDay[key].push(ev);
+    }
+
+    return { events, total: events.length, byDay };
+  }),
+
+  publicById: publicProcedure.input(eventByIdSchema).query(async ({ ctx, input }) => {
+    const event = await ctx.prisma.event.findUnique({
+      where: { id: input.id },
+      include: {
+        branch: { select: { id: true, name: true, city: true } },
+        speaker: { select: { id: true, name: true, avatar: true } },
+        _count: { select: { bookings: true } },
+      },
+    });
+    if (!event) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
+    }
+    if (
+      !PUBLIC_VISIBLE_STATUSES.includes(event.status as (typeof PUBLIC_VISIBLE_STATUSES)[number])
+    ) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Событие недоступно" });
+    }
+    return event;
+  }),
+
   list: protectedBranchProcedure.input(eventListInputSchema).query(async ({ ctx, input }) => {
     const where = buildEventListWhere(input, ctx.branchScope);
 

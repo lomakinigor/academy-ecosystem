@@ -53,3 +53,4 @@ storybook-static/
 
 # Sentry
 .sentryclirc
+.vercel

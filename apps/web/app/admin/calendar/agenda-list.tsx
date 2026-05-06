@@ -5,6 +5,11 @@ import { EventCard, type EventCardData } from "./event-card";
 interface AgendaListProps {
   events: EventCardData[];
   onEventClick?: (event: EventCardData) => void;
+  /**
+   * Если задан — карточки рендерятся как <Link href=...> вместо клика.
+   * Используется на публичной /calendar и публичной главной.
+   */
+  hrefBuilder?: (event: EventCardData) => string;
 }
 
 const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
@@ -19,7 +24,7 @@ const dayLabel = (iso: string): string => {
   return `${dayPart}, ${weekdayPart}`;
 };
 
-export function AgendaList({ events, onEventClick }: AgendaListProps) {
+export function AgendaList({ events, onEventClick, hrefBuilder }: AgendaListProps) {
   if (events.length === 0) {
     return (
       <div
@@ -67,7 +72,8 @@ export function AgendaList({ events, onEventClick }: AgendaListProps) {
                 <EventCard
                   key={ev.id}
                   event={ev}
-                  onClick={onEventClick ? () => onEventClick(ev) : undefined}
+                  href={hrefBuilder ? hrefBuilder(ev) : undefined}
+                  onClick={!hrefBuilder && onEventClick ? () => onEventClick(ev) : undefined}
                 />
               ))}
             </div>
