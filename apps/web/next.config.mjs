@@ -7,6 +7,14 @@ const nextConfig = {
     // если Next.js его трасит. Помечаем как external — Vercel подгрузит
     // из node_modules в рантайме.
     serverComponentsExternalPackages: ["@prisma/client", "@academy/db", "bcryptjs"],
+    // Принудительно включаем Prisma query engine (.so) в output trace.
+    // Без этого pnpm-симлинки теряются и runtime не находит libquery_engine.
+    outputFileTracingIncludes: {
+      "**/*": [
+        "../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/**",
+        "../../node_modules/.pnpm/@prisma+client*/node_modules/@prisma/client/**",
+      ],
+    },
   },
   // pnpm-symlinked workspace deps + Vercel output file tracing — нужно явно
   // включить @prisma/client движок в trace. monorepo-root указываем чтобы
