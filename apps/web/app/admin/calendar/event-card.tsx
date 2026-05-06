@@ -1,3 +1,5 @@
+"use client";
+
 import { Globe2, MapPin, User2, Users } from "lucide-react";
 
 import { Badge, Card, CardContent } from "@academy/ui";
