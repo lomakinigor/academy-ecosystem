@@ -1,14 +1,21 @@
-import Link from "next/link";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@academy/ui";
 
+import { logoutAction } from "../logout/actions";
+
 export function LogoutButton() {
   return (
-    <Button asChild variant="ghost" size="sm" aria-label="Выйти из аккаунта" className="px-2">
-      <Link href="/logout">
+    <form action={logoutAction}>
+      <Button
+        type="submit"
+        variant="ghost"
+        size="sm"
+        aria-label="Выйти из аккаунта"
+        className="px-2"
+      >
         <LogOut className="size-4" />
-      </Link>
-    </Button>
+      </Button>
+    </form>
   );
 }

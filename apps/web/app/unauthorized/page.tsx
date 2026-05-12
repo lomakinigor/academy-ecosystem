@@ -4,6 +4,7 @@ import { Lock } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@academy/ui";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { logoutAction } from "../logout/actions";
 
 export default function UnauthorizedPage() {
   return (
@@ -27,9 +28,11 @@ export default function UnauthorizedPage() {
           <Button asChild variant="outline" size="lg">
             <Link href="/student">В личный кабинет</Link>
           </Button>
-          <Button asChild variant="accent" size="lg">
-            <Link href="/logout">Сменить аккаунт</Link>
-          </Button>
+          <form action={logoutAction}>
+            <Button type="submit" variant="accent" size="lg">
+              Сменить аккаунт
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>
