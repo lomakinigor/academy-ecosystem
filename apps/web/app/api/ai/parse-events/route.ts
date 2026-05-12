@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -18,9 +17,9 @@ export type ParsedEvent = {
   start_time: string; // HH:MM
   end_time: string; // HH:MM
   speaker_name: string | null;
-  speaker_id: string | null; // matched from list
+  speaker_id: string | null;
   branch_city: string | null;
-  branch_id: string | null; // matched from list
+  branch_id: string | null;
   pricing_type: "FIXED" | "DONATION" | "FREE";
   price: number | null;
   pricing_note: string | null;
@@ -67,6 +66,57 @@ function matchBranch(city: string | null, branches: { id: string; city: string }
   return partial?.id ?? null;
 }
 
+const eventToolSchema = {
+  type: "function" as const,
+  function: {
+    name: "create_events",
+    description: "Создать массив событий из свободного текста",
+    parameters: {
+      type: "object",
+      required: ["events"],
+      properties: {
+        events: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["title", "type", "date", "start_time", "end_time"],
+            properties: {
+              title: { type: "string", description: "Название события" },
+              description: { type: "string", description: "Описание события или null" },
+              type: { type: "string", enum: EVENT_TYPES, description: "Тип события" },
+              date: { type: "string", description: "Дата в формате YYYY-MM-DD" },
+              start_time: { type: "string", description: "Время начала HH:MM" },
+              end_time: { type: "string", description: "Время окончания HH:MM" },
+              speaker_name: {
+                type: "string",
+                description: "Имя спикера точно как в тексте, или null",
+              },
+              branch_city: { type: "string", description: "Город проведения, или null" },
+              pricing_type: {
+                type: "string",
+                enum: ["FIXED", "DONATION", "FREE"],
+                description: "Тип оплаты: FIXED=конкретная цена, DONATION=донат, FREE=бесплатно",
+              },
+              price: { type: "number", description: "Цена в рублях, только для FIXED. null иначе" },
+              pricing_note: { type: "string", description: "Заметка о цене или null" },
+              max_participants: {
+                type: "number",
+                description: "Максимальное число участников или null",
+              },
+              is_online: { type: "boolean", description: "Онлайн-формат" },
+              tags: {
+                type: "array",
+                items: { type: "string" },
+                description: "Теги события",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -80,12 +130,11 @@ export async function POST(req: Request) {
   }
 
   const { text, speakers, branches } = parsed.data;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY не настроен" }, { status: 503 });
+    return NextResponse.json({ error: "OPENROUTER_API_KEY не настроен" }, { status: 503 });
   }
 
-  const client = new Anthropic({ apiKey });
   const today = new Date().toISOString().slice(0, 10);
 
   const systemPrompt = `Ты помощник для ввода событий в систему управления академией.
@@ -97,94 +146,52 @@ export async function POST(req: Request) {
 Если год не указан — используй текущий год. Если время не указано — ставь 10:00–13:00.
 Если несколько событий в тексте — вернуть массив. Разделители событий: пустая строка, нумерация, маркеры "-".`;
 
-  const tool: Anthropic.Tool = {
-    name: "create_events",
-    description: "Создать массив событий из свободного текста",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        events: {
-          type: "array",
-          items: {
-            type: "object",
-            required: ["title", "type", "date", "start_time", "end_time"],
-            properties: {
-              title: { type: "string", description: "Название события" },
-              description: { type: "string", description: "Описание события или null" },
-              type: {
-                type: "string",
-                enum: EVENT_TYPES,
-                description: "Тип события",
-              },
-              date: {
-                type: "string",
-                description: "Дата в формате YYYY-MM-DD",
-              },
-              start_time: {
-                type: "string",
-                description: "Время начала HH:MM",
-              },
-              end_time: {
-                type: "string",
-                description: "Время окончания HH:MM",
-              },
-              speaker_name: {
-                type: "string",
-                description: "Имя спикера точно как в тексте, или null",
-              },
-              branch_city: {
-                type: "string",
-                description: "Город проведения, или null",
-              },
-              pricing_type: {
-                type: "string",
-                enum: ["FIXED", "DONATION", "FREE"],
-                description: "Тип оплаты: FIXED=конкретная цена, DONATION=донат, FREE=бесплатно",
-              },
-              price: {
-                type: "number",
-                description: "Цена в рублях, только для FIXED. null иначе",
-              },
-              pricing_note: {
-                type: "string",
-                description: "Заметка о цене (early bird, условия) или null",
-              },
-              max_participants: {
-                type: "number",
-                description: "Максимальное число участников или null",
-              },
-              is_online: {
-                type: "boolean",
-                description: "Онлайн-формат",
-              },
-              tags: {
-                type: "array",
-                items: { type: "string" },
-                description: "Теги события (с детьми, открытое занятие и т.п.)",
-              },
-            },
-          },
-        },
-      },
-      required: ["events"],
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://academy-ecosystem.vercel.app",
+      "X-Title": "Academy Ecosystem",
     },
-  };
-
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
-    system: systemPrompt,
-    tools: [tool],
-    tool_choice: { type: "auto" },
-    messages: [{ role: "user", content: text }],
+    body: JSON.stringify({
+      model: "deepseek/deepseek-chat-v3-0324:free",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text },
+      ],
+      tools: [eventToolSchema],
+      tool_choice: { type: "function", function: { name: "create_events" } },
+    }),
   });
 
-  const toolUse = response.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
+  if (!response.ok) {
+    const err = await response.text();
+    return NextResponse.json({ error: `OpenRouter error: ${err}` }, { status: 502 });
+  }
+
+  const completion = (await response.json()) as {
+    choices: Array<{
+      message: {
+        tool_calls?: Array<{
+          function: { name: string; arguments: string };
+        }>;
+      };
+    }>;
+  };
+
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+  if (!toolCall) {
     return NextResponse.json({ error: "AI не вернул структурированные данные" }, { status: 422 });
   }
 
-  const raw = (toolUse.input as { events: unknown[] }).events ?? [];
+  let raw: unknown[] = [];
+  try {
+    const parsed = JSON.parse(toolCall.function.arguments) as { events: unknown[] };
+    raw = parsed.events ?? [];
+  } catch {
+    return NextResponse.json({ error: "Ошибка разбора ответа AI" }, { status: 422 });
+  }
 
   const result: ParsedEvent[] = raw.map((ev: unknown) => {
     const e = ev as Record<string, unknown>;
