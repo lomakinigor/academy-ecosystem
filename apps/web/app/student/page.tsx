@@ -21,24 +21,26 @@ export default async function StudentPage() {
     to,
   });
 
-  const events: EventCardData[] = rawEvents.map((ev) => ({
-    id: ev.id,
-    title: ev.title,
-    description: ev.description,
-    type: ev.type as EventTypeValue,
-    status: ev.status,
-    start_at: ev.start_at,
-    end_at: ev.end_at,
-    is_online: ev.is_online,
-    pricing_type: ev.pricing_type,
-    price: ev.price ? Number(ev.price) : null,
-    pricing_note: ev.pricing_note,
-    tags: ev.tags,
-    max_participants: ev.max_participants,
-    branch: ev.branch,
-    speaker: ev.speaker,
-    bookings_count: ev._count.bookings,
-  }));
+  const events: EventCardData[] = rawEvents
+    .filter((ev) => ev.speaker != null)
+    .map((ev) => ({
+      id: ev.id,
+      title: ev.title,
+      description: ev.description,
+      type: ev.type as EventTypeValue,
+      status: ev.status,
+      start_at: ev.start_at,
+      end_at: ev.end_at,
+      is_online: ev.is_online,
+      pricing_type: ev.pricing_type,
+      price: ev.price ? Number(ev.price) : null,
+      pricing_note: ev.pricing_note,
+      tags: ev.tags,
+      max_participants: ev.max_participants,
+      branch: ev.branch,
+      speaker: ev.speaker!,
+      bookings_count: ev._count.bookings,
+    }));
 
   return (
     <div className="mx-auto max-w-screen-lg px-4 py-6 sm:px-6 lg:px-8">

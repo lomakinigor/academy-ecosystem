@@ -34,9 +34,10 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   ]);
 
   const events: EventCardData[] = eventsResult.events
+    .filter((ev) => ev.speaker != null)
     .filter((ev) => {
       if (!filters.speaker) return true;
-      return ev.speaker.name.toLowerCase().includes(filters.speaker.toLowerCase());
+      return ev.speaker!.name.toLowerCase().includes(filters.speaker.toLowerCase());
     })
     .map((ev) => ({
       id: ev.id,
@@ -53,7 +54,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       tags: ev.tags,
       max_participants: ev.max_participants,
       branch: ev.branch,
-      speaker: ev.speaker,
+      speaker: ev.speaker!,
       bookings_count: ev._count.bookings,
     }));
 
