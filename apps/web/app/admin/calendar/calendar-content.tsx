@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@academy/ui";
 
 import { AgendaList } from "./agenda-list";
 import type { EventCardData } from "./event-card";
+import { EventBatchModal } from "./event-batch-modal";
 import { EventFormModal, type EventFormInitial } from "./event-form-modal";
 
 interface BranchOption {
@@ -28,6 +29,7 @@ const fromCard = (e: EventCardData): EventFormInitial => ({
   title: e.title,
   description: e.description,
   type: e.type,
+  status: e.status,
   start_at: e.start_at,
   end_at: e.end_at,
   branch_id: e.branch?.id ?? null,
@@ -52,6 +54,7 @@ export function CalendarContent({
   defaultBranchId,
 }: CalendarContentProps) {
   const [open, setOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
   const [initial, setInitial] = useState<EventFormInitial | undefined>();
 
   const openCreate = () => {
@@ -66,7 +69,11 @@ export function CalendarContent({
   return (
     <>
       {canAuthor && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
+            <Sparkles className="size-4" />
+            Вставить списком
+          </Button>
           <Button type="button" variant="accent" size="sm" onClick={openCreate}>
             <Plus />
             Создать событие
@@ -75,6 +82,14 @@ export function CalendarContent({
       )}
 
       <AgendaList events={events} onEventClick={canAuthor ? openEdit : undefined} />
+
+      <EventBatchModal
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        branches={branches}
+        defaultBranchId={defaultBranchId}
+        canEditNullBranch={canEditNullBranch}
+      />
 
       <EventFormModal
         open={open}

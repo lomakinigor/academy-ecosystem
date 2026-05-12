@@ -15,19 +15,20 @@
     "@academy/api": "workspace:*",
     "@academy/db": "workspace:*",
     "@academy/ui": "workspace:*",
+    "@anthropic-ai/sdk": "^0.95.2",
     "@tanstack/react-query": "^4.36.1",
     "@trpc/client": "^10.45.2",
     "@trpc/next": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
+    "bcryptjs": "^2.4.3",
     "lucide-react": "^0.454.0",
     "next": "14.2.5",
     "next-auth": "5.0.0-beta.20",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "superjson": "^2.2.1",
-    "zod": "^3.23.8",
-    "bcryptjs": "^2.4.3"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.5.0",

@@ -57,6 +57,7 @@ const initialEvent: EventFormInitial = {
   title: "Храм-3: день 1",
   description: "Подготовка",
   type: "SEMINAR",
+  status: "PLANNED",
   start_at: new Date("2026-06-01T10:00:00Z"),
   end_at: new Date("2026-06-01T18:00:00Z"),
   branch_id: "branch_msk",

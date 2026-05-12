@@ -24,6 +24,15 @@ import { trpc } from "@/lib/trpc/client";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
 
 type PricingType = "FIXED" | "DONATION" | "FREE";
+type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+
+const STATUS_LABELS: Record<EventStatus, string> = {
+  DRAFT: "Черновик",
+  PLANNED: "Запланировано",
+  ACTIVE: "Идёт сейчас",
+  COMPLETED: "Завершено",
+  CANCELLED: "Отменено",
+};
 
 const PRICING_LABELS: Record<PricingType, string> = {
   FIXED: "Цена",
@@ -42,6 +51,7 @@ export interface EventFormInitial {
   title: string;
   description: string | null;
   type: EventTypeValue;
+  status: EventStatus;
   start_at: Date;
   end_at: Date;
   branch_id: string | null;
@@ -111,6 +121,7 @@ export function EventFormModal({
   // Form state — простая локальная форма без react-hook-form, MVP-уровень
   const [title, setTitle] = useState("");
   const [type, setType] = useState<EventTypeValue>("SEMINAR");
+  const [status, setStatus] = useState<EventStatus>("PLANNED");
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -130,6 +141,7 @@ export function EventFormModal({
     if (initial) {
       setTitle(initial.title);
       setType(initial.type);
+      setStatus(initial.status);
       setDescription(initial.description ?? "");
       setStart(toLocalInput(initial.start_at));
       setEnd(toLocalInput(initial.end_at));
@@ -144,6 +156,7 @@ export function EventFormModal({
     } else {
       setTitle("");
       setType("SEMINAR");
+      setStatus("PLANNED");
       setDescription("");
       const now = new Date();
       now.setMinutes(0, 0, 0);
@@ -197,6 +210,7 @@ export function EventFormModal({
       title: title.trim(),
       description: description.trim() || undefined,
       type,
+      status,
       start_at: startDate,
       end_at: endDate,
       speaker_id: speakerId,
@@ -263,6 +277,21 @@ export function EventFormModal({
                   {EVENT_TYPE_VALUES.map((t) => (
                     <SelectItem key={t} value={t}>
                       {EVENT_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field label="Статус">
+              <Select value={status} onValueChange={(v) => setStatus(v as EventStatus)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(STATUS_LABELS) as EventStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {STATUS_LABELS[s]}
                     </SelectItem>
                   ))}
                 </SelectContent>

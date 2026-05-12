@@ -8,6 +8,7 @@ const baseEvent = (overrides: Partial<EventCardData> = {}): EventCardData => ({
   title: "Храм-3: день 1",
   description: "Подготовка и вход в практику.",
   type: "SEMINAR",
+  status: "PLANNED",
   start_at: new Date("2026-05-04T07:00:00Z"),
   end_at: new Date("2026-05-04T16:00:00Z"),
   is_online: false,

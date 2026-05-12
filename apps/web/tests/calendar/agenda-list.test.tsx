@@ -9,6 +9,7 @@ const ev = (id: string, start: string, title: string): EventCardData => ({
   title,
   description: null,
   type: "SEMINAR",
+  status: "PLANNED",
   start_at: new Date(start),
   end_at: new Date(start),
   is_online: false,

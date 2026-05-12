@@ -12,6 +12,7 @@ export interface EventCardData {
   title: string;
   description: string | null;
   type: EventTypeValue;
+  status: "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
   start_at: Date;
   end_at: Date;
   is_online: boolean;
