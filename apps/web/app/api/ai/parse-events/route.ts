@@ -155,7 +155,7 @@ export async function POST(req: Request) {
       "X-Title": "Academy Ecosystem",
     },
     body: JSON.stringify({
-      model: "deepseek/deepseek-chat-v3-0324:free",
+      model: "deepseek/deepseek-chat-v3-0324",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: text },
