@@ -10,6 +10,8 @@ export const eventTypeSchema = z.enum([
   "TRIP",
   "MASTERCLASS",
   "GRADING",
+  "LESSON",
+  "REHEARSAL",
 ]);
 
 export const eventStatusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]);
