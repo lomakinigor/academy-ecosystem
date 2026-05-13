@@ -246,12 +246,28 @@ export function EventFormModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Редактировать событие" : "Новое событие"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Изменения сохранятся сразу после нажатия «Сохранить»"
-              : "Заполните основные поля. Все они обязательны для публикации."}
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <DialogTitle>{isEdit ? "Редактировать событие" : "Новое событие"}</DialogTitle>
+              <DialogDescription className="mt-1">
+                {isEdit
+                  ? "Изменения сохранятся сразу после нажатия «Сохранить»"
+                  : "Заполните основные поля. Все они обязательны для публикации."}
+              </DialogDescription>
+            </div>
+            {!isEdit && onSwitchToBatch && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSwitchToBatch}
+                className="shrink-0"
+              >
+                <Sparkles className="size-4" />
+                Вставить списком
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -440,17 +456,6 @@ export function EventFormModal({
               >
                 <Trash2 />
                 Удалить
-              </Button>
-            ) : onSwitchToBatch ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onSwitchToBatch}
-                disabled={isPending}
-              >
-                <Sparkles className="size-4" />
-                Вставить списком
               </Button>
             ) : (
               <span />
