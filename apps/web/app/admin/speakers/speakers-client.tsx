@@ -5,19 +5,9 @@ import { Loader2, Pencil, Trash2, UserPlus, X, Check } from "lucide-react";
 import { Button, Input } from "@academy/ui";
 import { trpc } from "@/lib/trpc/client";
 
-type Speaker = {
-  id: string;
-  name: string;
-  email: string;
-  branch_id: string | null;
-  academic_level: string;
-};
-
-export function SpeakersClient({ initialSpeakers }: { initialSpeakers: Speaker[] }) {
+export function SpeakersClient() {
   const utils = trpc.useUtils();
-  const speakers = trpc.user.listSpeakers.useQuery(undefined, {
-    initialData: initialSpeakers,
-  });
+  const speakers = trpc.user.listSpeakers.useQuery(undefined);
 
   const createSpeaker = trpc.user.createSpeaker.useMutation({
     onSuccess: () => {

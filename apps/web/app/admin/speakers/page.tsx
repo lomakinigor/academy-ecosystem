@@ -3,16 +3,12 @@ import { ArrowLeft } from "lucide-react";
 
 import { requireRole } from "@/lib/auth/helpers";
 import { SystemRole } from "@/lib/auth/types";
-import { getServerCaller } from "@/lib/trpc/server";
-
 import { SpeakersClient } from "./speakers-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function SpeakersPage() {
   await requireRole(SystemRole.BRANCH_ADMIN);
-  const caller = await getServerCaller();
-  const speakers = await caller.user.listSpeakers();
 
   return (
     <div className="mx-auto max-w-screen-md px-4 py-6 sm:px-6 lg:px-8">
@@ -28,7 +24,7 @@ export default async function SpeakersPage() {
       <h1 className="mb-6 font-heading text-2xl font-bold text-brand-primary">
         Управление спикерами
       </h1>
-      <SpeakersClient initialSpeakers={speakers} />
+      <SpeakersClient />
     </div>
   );
 }
