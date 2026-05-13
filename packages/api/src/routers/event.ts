@@ -284,6 +284,8 @@ export const eventRouter = router({
     const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
     assertBranchWrite(ctx.branchScope, branchId);
 
+    const end_at = input.end_at ?? new Date(input.start_at.getTime() + 2 * 60 * 60 * 1000);
+
     const created = await ctx.prisma.event.create({
       data: {
         title: input.title,
@@ -291,7 +293,7 @@ export const eventRouter = router({
         type: input.type,
         status: input.status,
         start_at: input.start_at,
-        end_at: input.end_at,
+        end_at,
         speaker_id: input.speaker_id,
         branch_id: branchId,
         max_participants: input.max_participants,
@@ -299,6 +301,8 @@ export const eventRouter = router({
         price: input.price,
         pricing_note: input.pricing_note,
         is_online: input.is_online,
+        is_hybrid: input.is_hybrid,
+        venue: input.venue,
         tags: input.tags,
         is_grading: input.is_grading,
         program_id: input.program_id,

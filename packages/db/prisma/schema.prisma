@@ -166,8 +166,14 @@ model Event {
   // Свободный текст для сложных tier'ов / донат-минимума
   pricing_note     String?
 
-  // Модификатор формата (для любого type — например, онлайн-семинар)
+  // Место проведения (зал, адрес, ссылка на Zoom и т.п.)
+  venue            String?
+
+  // Формат: is_online=false, is_hybrid=false → офлайн
+  //          is_online=true,  is_hybrid=false → онлайн
+  //          is_online=true,  is_hybrid=true  → онлайн+офлайн
   is_online        Boolean     @default(false)
+  is_hybrid        Boolean     @default(false)
 
   // Расширяемые лейблы: "с детьми", "допуск после знакомства",
   // "открытое занятие", "СВЕТЛОЯР" и т.п.

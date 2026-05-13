@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Trash2, UserPlus } from "lucide-react";
 
 import {
   Button,
@@ -25,19 +25,18 @@ import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./fil
 
 type PricingType = "FIXED" | "DONATION" | "FREE";
 type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-
-const STATUS_LABELS: Record<EventStatus, string> = {
-  DRAFT: "Черновик",
-  PLANNED: "Запланировано",
-  ACTIVE: "Идёт сейчас",
-  COMPLETED: "Завершено",
-  CANCELLED: "Отменено",
-};
+type EventFormat = "OFFLINE" | "ONLINE" | "HYBRID";
 
 const PRICING_LABELS: Record<PricingType, string> = {
   FIXED: "Цена",
   DONATION: "Донат",
   FREE: "Бесплатно",
+};
+
+const FORMAT_LABELS: Record<EventFormat, string> = {
+  OFFLINE: "Офлайн",
+  ONLINE: "Онлайн",
+  HYBRID: "Онлайн + Офлайн",
 };
 
 interface BranchOption {
@@ -57,6 +56,8 @@ export interface EventFormInitial {
   branch_id: string | null;
   speaker_id: string;
   is_online: boolean;
+  is_hybrid?: boolean;
+  venue?: string | null;
   pricing_type: PricingType;
   price: number | null;
   pricing_note: string | null;
@@ -68,9 +69,9 @@ interface EventFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   branches: BranchOption[];
-  initial?: EventFormInitial; // если передан — редактирование, иначе создание
-  canEditNullBranch: boolean; // global users: можно делать общеакадемическое
-  defaultBranchId: string | null; // для scoped: свой филиал
+  initial?: EventFormInitial;
+  canEditNullBranch: boolean;
+  defaultBranchId: string | null;
   onSwitchToBatch?: () => void;
 }
 
@@ -80,6 +81,18 @@ const toLocalInput = (d: Date): string => {
 };
 
 const fromLocalInput = (s: string): Date => new Date(s);
+
+const onlineHybridToFormat = (is_online: boolean, is_hybrid?: boolean): EventFormat => {
+  if (is_online && is_hybrid) return "HYBRID";
+  if (is_online) return "ONLINE";
+  return "OFFLINE";
+};
+
+const formatToFlags = (fmt: EventFormat): { is_online: boolean; is_hybrid: boolean } => {
+  if (fmt === "ONLINE") return { is_online: true, is_hybrid: false };
+  if (fmt === "HYBRID") return { is_online: true, is_hybrid: true };
+  return { is_online: false, is_hybrid: false };
+};
 
 export function EventFormModal({
   open,
@@ -95,10 +108,7 @@ export function EventFormModal({
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const speakers = trpc.user.listSpeakers.useQuery(undefined, {
-    enabled: open, // только когда модалка открыта
-  });
-
+  const speakers = trpc.user.listSpeakers.useQuery(undefined, { enabled: open });
   const utils = trpc.useUtils();
 
   const onSuccess = () => {
@@ -107,49 +117,53 @@ export function EventFormModal({
     onOpenChange(false);
   };
 
-  const create = trpc.event.create.useMutation({
-    onSuccess,
-    onError: (e) => setError(e.message),
-  });
-  const update = trpc.event.update.useMutation({
-    onSuccess,
-    onError: (e) => setError(e.message),
-  });
-  const remove = trpc.event.delete.useMutation({
-    onSuccess,
+  const create = trpc.event.create.useMutation({ onSuccess, onError: (e) => setError(e.message) });
+  const update = trpc.event.update.useMutation({ onSuccess, onError: (e) => setError(e.message) });
+  const remove = trpc.event.delete.useMutation({ onSuccess, onError: (e) => setError(e.message) });
+
+  const createSpeaker = trpc.user.createSpeaker.useMutation({
+    onSuccess: (speaker) => {
+      utils.user.listSpeakers.invalidate();
+      setSpeakerId(speaker.id);
+      setShowNewSpeaker(false);
+      setNewSpeakerName("");
+    },
     onError: (e) => setError(e.message),
   });
 
-  // Form state — простая локальная форма без react-hook-form, MVP-уровень
+  // Form state
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<EventTypeValue>("SEMINAR");
-  const [status, setStatus] = useState<EventStatus>("PLANNED");
+  const [type, setType] = useState<EventTypeValue>("LESSON");
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [branchId, setBranchId] = useState<string>(""); // "" = общеакадемическое
+  const [branchId, setBranchId] = useState<string>("");
   const [speakerId, setSpeakerId] = useState("");
-  const [isOnline, setIsOnline] = useState(false);
-  const [pricingType, setPricingType] = useState<PricingType>("FIXED");
+  const [format, setFormat] = useState<EventFormat>("OFFLINE");
+  const [venue, setVenue] = useState("");
+  const [pricingType, setPricingType] = useState<PricingType>("FREE");
   const [price, setPrice] = useState<string>("");
   const [pricingNote, setPricingNote] = useState("");
   const [maxParticipants, setMaxParticipants] = useState<string>("");
   const [tagsRaw, setTagsRaw] = useState("");
 
-  // Подгружаем initial при открытии (или сбрасываем для create)
+  // Speaker creation inline
+  const [showNewSpeaker, setShowNewSpeaker] = useState(false);
+  const [newSpeakerName, setNewSpeakerName] = useState("");
+
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setShowNewSpeaker(false);
+    setNewSpeakerName("");
     if (initial) {
       setTitle(initial.title);
       setType(initial.type);
-      setStatus(initial.status);
       setDescription(initial.description ?? "");
       setStart(toLocalInput(initial.start_at));
-      setEnd(toLocalInput(initial.end_at));
       setBranchId(initial.branch_id ?? "");
       setSpeakerId(initial.speaker_id);
-      setIsOnline(initial.is_online);
+      setFormat(onlineHybridToFormat(initial.is_online, initial.is_hybrid));
+      setVenue(initial.venue ?? "");
       setPricingType(initial.pricing_type);
       setPrice(initial.price !== null ? String(initial.price) : "");
       setPricingNote(initial.pricing_note ?? "");
@@ -157,18 +171,16 @@ export function EventFormModal({
       setTagsRaw(initial.tags.join(", "));
     } else {
       setTitle("");
-      setType("SEMINAR");
-      setStatus("PLANNED");
+      setType("LESSON");
       setDescription("");
       const now = new Date();
       now.setMinutes(0, 0, 0);
-      const later = new Date(now.getTime() + 3 * 60 * 60 * 1000);
       setStart(toLocalInput(now));
-      setEnd(toLocalInput(later));
       setBranchId(defaultBranchId ?? "");
       setSpeakerId("");
-      setIsOnline(false);
-      setPricingType("FIXED");
+      setFormat("OFFLINE");
+      setVenue("");
+      setPricingType("FREE");
       setPrice("");
       setPricingNote("");
       setMaxParticipants("");
@@ -184,14 +196,8 @@ export function EventFormModal({
       setError("Название минимум 3 символа");
       return;
     }
-    if (!start || !end) {
-      setError("Укажите даты начала и окончания");
-      return;
-    }
-    const startDate = fromLocalInput(start);
-    const endDate = fromLocalInput(end);
-    if (endDate <= startDate) {
-      setError("Окончание должно быть позже начала");
+    if (!start) {
+      setError("Укажите дату начала");
       return;
     }
     if (!speakerId) {
@@ -199,6 +205,7 @@ export function EventFormModal({
       return;
     }
 
+    const startDate = fromLocalInput(start);
     const tags = tagsRaw
       .split(",")
       .map((t) => t.trim())
@@ -207,17 +214,18 @@ export function EventFormModal({
     const branchValue: string | null = branchId === "" ? null : branchId;
     const priceValue = pricingType === "FIXED" && price !== "" ? Number(price) : undefined;
     const maxValue = maxParticipants !== "" ? Number(maxParticipants) : undefined;
+    const { is_online, is_hybrid } = formatToFlags(format);
 
     const common = {
       title: title.trim(),
       description: description.trim() || undefined,
       type,
-      status,
       start_at: startDate,
-      end_at: endDate,
       speaker_id: speakerId,
       branch_id: branchValue,
-      is_online: isOnline,
+      is_online,
+      is_hybrid,
+      venue: venue.trim() || undefined,
       pricing_type: pricingType,
       price: priceValue,
       pricing_note: pricingNote.trim() || undefined,
@@ -234,13 +242,12 @@ export function EventFormModal({
 
   const onDelete = async () => {
     if (!initial) return;
-    if (!window.confirm("Удалить событие? Связанные брони будут стёрты.")) {
-      return;
-    }
+    if (!window.confirm("Удалить событие? Связанные брони будут стёрты.")) return;
     await remove.mutateAsync({ id: initial.id });
   };
 
-  const isPending = create.isLoading || update.isLoading || remove.isLoading;
+  const isPending =
+    create.isLoading || update.isLoading || remove.isLoading || createSpeaker.isLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -301,21 +308,6 @@ export function EventFormModal({
               </Select>
             </Field>
 
-            <Field label="Статус">
-              <Select value={status} onValueChange={(v) => setStatus(v as EventStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(STATUS_LABELS) as EventStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
             <Field label="Филиал">
               <Select
                 value={branchId === "" ? "__null__" : branchId}
@@ -346,43 +338,86 @@ export function EventFormModal({
               />
             </Field>
 
-            <Field label="Окончание">
-              <Input
-                type="datetime-local"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-                required
-              />
+            <Field label="Спикер">
+              {showNewSpeaker ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newSpeakerName}
+                    onChange={(e) => setNewSpeakerName(e.target.value)}
+                    placeholder="Имя и фамилия"
+                    autoFocus
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="accent"
+                    disabled={newSpeakerName.trim().length < 2 || createSpeaker.isLoading}
+                    onClick={() => createSpeaker.mutate({ name: newSpeakerName.trim() })}
+                  >
+                    {createSpeaker.isLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Добавить"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowNewSpeaker(false)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Select value={speakerId} onValueChange={setSpeakerId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Выберите спикера" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(speakers.data ?? []).map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowNewSpeaker(true)}
+                    title="Добавить нового спикера"
+                  >
+                    <UserPlus className="size-4" />
+                  </Button>
+                </div>
+              )}
             </Field>
 
-            <Field label="Спикер">
-              <Select value={speakerId} onValueChange={setSpeakerId}>
+            <Field label="Формат">
+              <Select value={format} onValueChange={(v) => setFormat(v as EventFormat)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите спикера" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(speakers.data ?? []).map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
+                  {(["OFFLINE", "ONLINE", "HYBRID"] as EventFormat[]).map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {FORMAT_LABELS[f]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
 
-            <Field label="Формат">
-              <div className="flex h-10 items-center gap-2 rounded-md border border-border bg-background px-3">
-                <input
-                  id="is-online"
-                  type="checkbox"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="size-4 rounded border-border accent-brand-accent"
-                />
-                <label htmlFor="is-online" className="text-sm">
-                  Онлайн
-                </label>
-              </div>
+            <Field label="Место проведения">
+              <Input
+                value={venue}
+                onChange={(e) => setVenue(e.target.value)}
+                placeholder="ул. 8 Марта 194Б, зал 3 / zoom.us/j/..."
+              />
             </Field>
 
             <Field label="Стоимость">
