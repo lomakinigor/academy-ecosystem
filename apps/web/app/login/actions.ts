@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { signIn } from "@/auth";
-import { auth } from "@/auth";
 import { SystemRole, SYSTEM_ROLE_RANK } from "@/lib/auth/types";
 
 const loginSchema = z.object({
@@ -54,8 +53,11 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     redirect(parsed.data.callbackUrl);
   }
 
-  const session = await auth();
-  const role = (session?.user as { system_role?: SystemRole } | undefined)?.system_role;
+  // auth() cannot read the JWT cookie set by signIn() in the same request,
+  // so we derive the role directly from the authenticated record instead.
+  const { defaultUserRepository } = await import("@/auth/user-repository");
+  const userRecord = await defaultUserRepository.findByEmail(parsed.data.email);
+  const role = userRecord?.system_role;
   const rank = role ? (SYSTEM_ROLE_RANK[role] ?? 0) : 0;
   redirect(rank >= SYSTEM_ROLE_RANK[SystemRole.BRANCH_ADMIN] ? "/admin/calendar" : "/student");
 }

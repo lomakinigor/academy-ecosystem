@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@academy/ui";
 
 import { auth } from "@/auth";
+import { SystemRole, SYSTEM_ROLE_RANK } from "@/lib/auth/types";
 import { BrandMark } from "@/components/brand/brand-mark";
 
 import { LoginForm } from "./login-form";
@@ -17,7 +18,12 @@ export default async function LoginPage({
 }) {
   const session = await auth();
   if (session?.user) {
-    redirect(searchParams?.callbackUrl || "/student");
+    const role = (session.user as { system_role?: SystemRole }).system_role;
+    const rank = role ? (SYSTEM_ROLE_RANK[role] ?? 0) : 0;
+    const dest =
+      searchParams?.callbackUrl ??
+      (rank >= SYSTEM_ROLE_RANK[SystemRole.BRANCH_ADMIN] ? "/admin/calendar" : "/student");
+    redirect(dest);
   }
 
   const callbackUrl = searchParams?.callbackUrl;

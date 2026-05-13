@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
+
 import { requireRole } from "@/lib/auth/helpers";
-import { SystemRole } from "@/lib/auth/types";
+import { SystemRole, SYSTEM_ROLE_RANK } from "@/lib/auth/types";
 import { getServerCaller } from "@/lib/trpc/server";
 
 import { AgendaList } from "../admin/calendar/agenda-list";
@@ -10,6 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function StudentPage() {
   const user = await requireRole(SystemRole.STUDENT);
+
+  if (SYSTEM_ROLE_RANK[user.system_role] >= SYSTEM_ROLE_RANK[SystemRole.BRANCH_ADMIN]) {
+    redirect("/admin/calendar");
+  }
   const caller = await getServerCaller();
 
   const now = new Date();
