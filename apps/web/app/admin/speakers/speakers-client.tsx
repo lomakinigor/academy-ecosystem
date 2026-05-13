@@ -30,7 +30,7 @@ export function SpeakersClient() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
-  const startEdit = (s: Speaker) => {
+  const startEdit = (s: { id: string; name: string }) => {
     setEditingId(s.id);
     setEditName(s.name);
   };
