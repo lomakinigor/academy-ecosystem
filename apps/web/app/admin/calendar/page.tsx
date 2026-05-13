@@ -60,18 +60,8 @@ export default async function CalendarPage({ searchParams }: PageProps) {
 
   const isGlobal = GLOBAL_ROLES.has(user.system_role);
 
-  // Кто может создавать/редактировать события:
-  // - global (PRES/VP) — везде
-  // - BRANCH_ADMIN+ — в своём филиале
-  // - Магистры/Мастера — в своём филиале
-  // - Listener — нельзя (фильтруется по academic_level)
-  const canAuthor =
-    isGlobal ||
-    user.system_role === SystemRole.BRANCH_DIRECTOR ||
-    user.system_role === SystemRole.BRANCH_ADMIN ||
-    user.academic_level === "MAGISTER" ||
-    user.academic_level === "MASTER" ||
-    user.academic_level === "FOUNDER";
+  // Все кто прошли requireRole(BRANCH_ADMIN) могут создавать события
+  const canAuthor = true;
 
   const branchOptions = branches.map((b) => ({
     id: b.id,
