@@ -13,6 +13,8 @@ export const EVENT_TYPE_VALUES = [
   "TRIP",
   "MASTERCLASS",
   "GRADING",
+  "LESSON",
+  "REHEARSAL",
 ] as const;
 export type EventTypeValue = (typeof EVENT_TYPE_VALUES)[number];
 
@@ -25,6 +27,8 @@ export const EVENT_TYPE_LABELS: Record<EventTypeValue, string> = {
   TRIP: "Путешествия",
   MASTERCLASS: "Мастер-классы",
   GRADING: "Аттестации",
+  LESSON: "Занятия",
+  REHEARSAL: "Репетиции",
 };
 
 export type PeriodKey = "month" | "quarter" | "year" | "custom";

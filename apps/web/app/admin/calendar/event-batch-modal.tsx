@@ -238,6 +238,7 @@ export function EventBatchModal({
                     <th className="py-2 pr-3">Дата и время</th>
                     <th className="py-2 pr-3">Спикер</th>
                     <th className="py-2 pr-3">Филиал</th>
+                    <th className="py-2 pr-3">Онлайн</th>
                     <th className="py-2">Цена</th>
                   </tr>
                 </thead>
@@ -353,6 +354,14 @@ export function EventBatchModal({
                             ))}
                           </SelectContent>
                         </Select>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <input
+                          type="checkbox"
+                          checked={row.is_online}
+                          onChange={(e) => updateRow(i, { is_online: e.target.checked })}
+                          className="size-4 rounded border-border accent-brand-accent"
+                        />
                       </td>
                       <td className="py-2 text-xs text-foreground/80">
                         {row.pricing_type === "FREE"

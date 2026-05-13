@@ -37,6 +37,8 @@ const EVENT_TYPES = [
   "TRIP",
   "MASTERCLASS",
   "GRADING",
+  "LESSON",
+  "REHEARSAL",
 ];
 
 const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
@@ -142,7 +144,7 @@ export async function POST(req: Request) {
 Список спикеров: ${speakers.map((s) => s.name).join(", ") || "не задан"}.
 Список городов/филиалов: ${branches.map((b) => b.city).join(", ") || "не задан"}.
 Тип события — одно из: ${EVENT_TYPES.join(", ")}.
-Для определения типа: семинар→SEMINAR, практика→PRACTICE, вебинар→WEBINAR, курс→COURSE, ретрит/ритрит→RETREAT, путешествие/поездка→TRIP, мастер-класс→MASTERCLASS.
+Для определения типа: семинар→SEMINAR, практика→PRACTICE, вебинар→WEBINAR, курс→COURSE, ретрит/ритрит→RETREAT, путешествие/поездка→TRIP, мастер-класс→MASTERCLASS, занятие/урок→LESSON, репетиция→REHEARSAL.
 Если год не указан — используй текущий год. Если время не указано — ставь 10:00–13:00.
 Если несколько событий в тексте — вернуть массив. Разделители событий: пустая строка, нумерация, маркеры "-".`;
 

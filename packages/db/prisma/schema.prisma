@@ -53,6 +53,8 @@ enum EventType {
   TRIP
   MASTERCLASS
   GRADING
+  LESSON
+  REHEARSAL
 }
 
 // Тип ценообразования. price (Decimal?) хранит сумму для FIXED;
