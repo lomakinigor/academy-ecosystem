@@ -121,6 +121,11 @@ export function EventBatchModal({
     if (selected.length === 0) return;
     setCreateError(null);
 
+    if (missingSpeaker) {
+      setCreateError("Выберите спикера для всех отмеченных событий");
+      return;
+    }
+
     try {
       for (const ev of selected) {
         await create.mutateAsync({
@@ -130,7 +135,7 @@ export function EventBatchModal({
           status: "PLANNED",
           start_at: new Date(toDatetimeLocal(ev.date, ev.start_time)),
           end_at: new Date(toDatetimeLocal(ev.date, ev.end_time)),
-          speaker_id: ev.speaker_id ?? "",
+          speaker_id: ev.speaker_id!,
           branch_id: ev.branch_id,
           is_online: ev.is_online,
           pricing_type: ev.pricing_type,
@@ -149,7 +154,9 @@ export function EventBatchModal({
     }
   };
 
-  const selectedCount = rows.filter((r) => r.include).length;
+  const selectedRows = rows.filter((r) => r.include);
+  const selectedCount = selectedRows.length;
+  const missingSpeaker = selectedRows.some((r) => !r.speaker_id);
   const isPending = create.isLoading;
 
   return (
@@ -388,7 +395,8 @@ export function EventBatchModal({
               <Button
                 variant="accent"
                 onClick={handleCreateAll}
-                disabled={selectedCount === 0 || isPending}
+                disabled={selectedCount === 0 || missingSpeaker || isPending}
+                title={missingSpeaker ? "Выберите спикера для всех событий" : undefined}
               >
                 {isPending ? (
                   <>
