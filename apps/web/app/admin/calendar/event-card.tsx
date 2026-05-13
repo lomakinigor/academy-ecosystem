@@ -48,6 +48,8 @@ const TYPE_BADGE_VARIANT: Record<
   TRIP: "muted",
   MASTERCLASS: "accent",
   GRADING: "warning",
+  LESSON: "default",
+  REHEARSAL: "muted",
 };
 
 const monthShort = (d: Date): string =>
