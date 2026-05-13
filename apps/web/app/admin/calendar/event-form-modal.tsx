@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 
 import {
   Button,
@@ -71,6 +71,7 @@ interface EventFormModalProps {
   initial?: EventFormInitial; // если передан — редактирование, иначе создание
   canEditNullBranch: boolean; // global users: можно делать общеакадемическое
   defaultBranchId: string | null; // для scoped: свой филиал
+  onSwitchToBatch?: () => void;
 }
 
 const toLocalInput = (d: Date): string => {
@@ -87,6 +88,7 @@ export function EventFormModal({
   initial,
   canEditNullBranch,
   defaultBranchId,
+  onSwitchToBatch,
 }: EventFormModalProps) {
   const isEdit = Boolean(initial);
   const router = useRouter();
@@ -438,6 +440,17 @@ export function EventFormModal({
               >
                 <Trash2 />
                 Удалить
+              </Button>
+            ) : onSwitchToBatch ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSwitchToBatch}
+                disabled={isPending}
+              >
+                <Sparkles className="size-4" />
+                Вставить списком
               </Button>
             ) : (
               <span />

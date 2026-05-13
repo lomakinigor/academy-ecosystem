@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@academy/ui";
 
@@ -70,10 +70,6 @@ export function CalendarContent({
     <>
       {canAuthor && (
         <div className="mb-4 flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
-            <Sparkles className="size-4" />
-            Вставить списком
-          </Button>
           <Button type="button" variant="accent" size="sm" onClick={openCreate}>
             <Plus />
             Создать событие
@@ -98,6 +94,10 @@ export function CalendarContent({
         initial={initial}
         canEditNullBranch={canEditNullBranch}
         defaultBranchId={defaultBranchId}
+        onSwitchToBatch={() => {
+          setOpen(false);
+          setBatchOpen(true);
+        }}
       />
     </>
   );
