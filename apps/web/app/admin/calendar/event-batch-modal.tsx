@@ -122,7 +122,7 @@ export function EventBatchModal({
     setCreateError(null);
 
     if (missingSpeaker) {
-      setCreateError("Выберите спикера для всех отмеченных событий");
+      setCreateError("Заполните все поля");
       return;
     }
 
