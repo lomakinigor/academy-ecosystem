@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 import {
   Button,
@@ -43,7 +43,36 @@ interface EventBatchModalProps {
   canEditNullBranch: boolean;
 }
 
-type RowState = ParsedEvent & { include: boolean };
+type EventFormat = "OFFLINE" | "ONLINE" | "HYBRID";
+
+const formatToFlags = (f: EventFormat) => ({
+  is_online: f === "ONLINE",
+  is_hybrid: f === "HYBRID",
+});
+
+const flagsToFormat = (is_online: boolean, is_hybrid: boolean): EventFormat => {
+  if (is_hybrid) return "HYBRID";
+  if (is_online) return "ONLINE";
+  return "OFFLINE";
+};
+
+const FORMAT_LABELS: Record<EventFormat, string> = {
+  OFFLINE: "Офлайн",
+  ONLINE: "Онлайн",
+  HYBRID: "Онлайн+Офлайн",
+};
+
+// EXISTING — спикер найден в БД
+// PENDING  — будет создан при финальном сохранении (имя распознано, но не в БД)
+// MISSING  — пользователь должен выбрать вручную
+type SpeakerStatus = "EXISTING" | "PENDING" | "MISSING";
+
+type RowState = ParsedEvent & {
+  include: boolean;
+  is_hybrid: boolean;
+  speaker_status: SpeakerStatus;
+  speaker_name_edit: string;
+};
 
 const toDatetimeLocal = (date: string, time: string): string => `${date}T${time}`;
 
@@ -66,6 +95,7 @@ export function EventBatchModal({
   const speakers = trpc.user.listSpeakers.useQuery(undefined, { enabled: open });
   const utils = trpc.useUtils();
   const create = trpc.event.create.useMutation();
+  const createSpeaker = trpc.user.createSpeaker.useMutation();
 
   const speakerList: Speaker[] = speakers.data ?? [];
 
@@ -96,13 +126,26 @@ export function EventBatchModal({
         throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { events: ParsedEvent[] };
+
       setRows(
-        data.events.map((e) => ({
-          ...e,
-          // Fallback: если branch не найден — ставим default
-          branch_id: e.branch_id ?? defaultBranchId,
-          include: true,
-        })),
+        data.events.map((e) => {
+          let speaker_status: SpeakerStatus;
+          if (e.speaker_id) {
+            speaker_status = "EXISTING";
+          } else if (e.speaker_name) {
+            speaker_status = "PENDING";
+          } else {
+            speaker_status = "MISSING";
+          }
+          return {
+            ...e,
+            branch_id: e.branch_id ?? defaultBranchId,
+            include: true,
+            is_hybrid: false,
+            speaker_status,
+            speaker_name_edit: e.speaker_name ?? "",
+          };
+        }),
       );
       setStep("review");
     } catch (e) {
@@ -122,22 +165,43 @@ export function EventBatchModal({
     setCreateError(null);
 
     if (missingSpeaker) {
-      setCreateError("Заполните все поля");
+      setCreateError("Выберите спикера для всех отмеченных событий");
       return;
     }
 
     try {
+      // Создаём новых спикеров батчем перед событиями
+      const pendingNames = [
+        ...new Set(
+          selected
+            .filter((r) => r.speaker_status === "PENDING")
+            .map((r) => r.speaker_name_edit.trim())
+            .filter(Boolean),
+        ),
+      ];
+      const nameToId: Record<string, string> = {};
+      for (const name of pendingNames) {
+        const created = await createSpeaker.mutateAsync({ name });
+        nameToId[name] = created.id;
+      }
+      if (pendingNames.length > 0) {
+        utils.user.listSpeakers.invalidate();
+      }
+
+      // Создаём события
       for (const ev of selected) {
+        const speakerId =
+          ev.speaker_status === "PENDING" ? nameToId[ev.speaker_name_edit.trim()] : ev.speaker_id!;
         await create.mutateAsync({
           title: ev.title,
           description: ev.description ?? undefined,
           type: ev.type as EventTypeValue,
           status: "PLANNED",
           start_at: new Date(toDatetimeLocal(ev.date, ev.start_time)),
-          end_at: new Date(toDatetimeLocal(ev.date, ev.end_time)),
-          speaker_id: ev.speaker_id!,
+          speaker_id: speakerId,
           branch_id: ev.branch_id,
           is_online: ev.is_online,
+          is_hybrid: ev.is_hybrid,
           pricing_type: ev.pricing_type,
           price: ev.pricing_type === "FIXED" && ev.price != null ? ev.price : undefined,
           pricing_note: ev.pricing_note ?? undefined,
@@ -156,7 +220,8 @@ export function EventBatchModal({
 
   const selectedRows = rows.filter((r) => r.include);
   const selectedCount = selectedRows.length;
-  const missingSpeaker = selectedRows.some((r) => !r.speaker_id);
+  const missingSpeaker = selectedRows.some((r) => r.speaker_status === "MISSING");
+  const pendingCount = selectedRows.filter((r) => r.speaker_status === "PENDING").length;
   const isPending = create.isLoading;
 
   return (
@@ -167,7 +232,10 @@ export function EventBatchModal({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <DialogContent
+        className="max-h-[90vh] max-w-4xl overflow-y-auto"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-4 text-brand-accent" />
@@ -223,10 +291,16 @@ export function EventBatchModal({
 
         {step === "review" && (
           <div className="space-y-4">
-            <p className="text-sm text-foreground/70">
-              Распознано событий: <strong>{rows.length}</strong>. Снимите галочку, чтобы пропустить
-              строку. Проверьте спикера и филиал — они должны совпадать с БД.
-            </p>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/70">
+              <span>
+                Распознано событий: <strong>{rows.length}</strong>
+              </span>
+              {pendingCount > 0 && (
+                <span className="rounded-full border border-brand-accent/40 bg-brand-accent/10 px-2 py-0.5 text-xs text-brand-accent">
+                  {pendingCount} новых спикера — будут созданы при сохранении
+                </span>
+              )}
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -235,145 +309,205 @@ export function EventBatchModal({
                     <th className="py-2 pr-3">✓</th>
                     <th className="py-2 pr-3">Название</th>
                     <th className="py-2 pr-3">Тип</th>
-                    <th className="py-2 pr-3">Дата и время</th>
+                    <th className="py-2 pr-3">Дата и начало</th>
                     <th className="py-2 pr-3">Спикер</th>
                     <th className="py-2 pr-3">Филиал</th>
-                    <th className="py-2 pr-3">Онлайн</th>
+                    <th className="py-2 pr-3">Формат</th>
                     <th className="py-2">Цена</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, i) => (
-                    <tr
-                      key={i}
-                      className={`border-b border-border/50 ${!row.include ? "opacity-40" : ""}`}
-                    >
-                      <td className="py-2 pr-3">
-                        <input
-                          type="checkbox"
-                          checked={row.include}
-                          onChange={(e) => updateRow(i, { include: e.target.checked })}
-                          className="size-4 rounded border-border accent-brand-accent"
-                        />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Input
-                          value={row.title}
-                          onChange={(e) => updateRow(i, { title: e.target.value })}
-                          className="h-8 min-w-[160px] text-xs"
-                        />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Select value={row.type} onValueChange={(v) => updateRow(i, { type: v })}>
-                          <SelectTrigger className="h-8 w-[120px] text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {EVENT_TYPE_VALUES.map((t) => (
-                              <SelectItem key={t} value={t} className="text-xs">
-                                {EVENT_TYPE_LABELS[t]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-2 pr-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <Input
-                            type="date"
-                            value={row.date}
-                            onChange={(e) => updateRow(i, { date: e.target.value })}
-                            className="h-8 w-[130px] text-xs"
+                  {rows.map((row, i) => {
+                    const hasMissing = row.include && row.speaker_status === "MISSING";
+                    return (
+                      <tr
+                        key={i}
+                        className={`border-b border-border/50 transition-colors ${
+                          !row.include ? "opacity-40" : hasMissing ? "bg-destructive/5" : ""
+                        }`}
+                      >
+                        <td className="py-2 pr-3">
+                          <input
+                            type="checkbox"
+                            title="Включить событие"
+                            checked={row.include}
+                            onChange={(e) => updateRow(i, { include: e.target.checked })}
+                            className="size-4 rounded border-border accent-brand-accent"
                           />
-                          <div className="flex items-center gap-1">
+                        </td>
+                        <td className="py-2 pr-3">
+                          <Input
+                            value={row.title}
+                            onChange={(e) => updateRow(i, { title: e.target.value })}
+                            className="h-8 min-w-[160px] text-xs"
+                          />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <Select value={row.type} onValueChange={(v) => updateRow(i, { type: v })}>
+                            <SelectTrigger className="h-8 w-[120px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EVENT_TYPE_VALUES.map((t) => (
+                                <SelectItem key={t} value={t} className="text-xs">
+                                  {EVENT_TYPE_LABELS[t]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <Input
+                              type="date"
+                              value={row.date}
+                              onChange={(e) => updateRow(i, { date: e.target.value })}
+                              className="h-8 w-[130px] text-xs"
+                            />
                             <Input
                               type="time"
                               value={row.start_time}
                               onChange={(e) => updateRow(i, { start_time: e.target.value })}
-                              className="h-8 w-[80px] text-xs"
-                            />
-                            <span className="text-foreground/40">–</span>
-                            <Input
-                              type="time"
-                              value={row.end_time}
-                              onChange={(e) => updateRow(i, { end_time: e.target.value })}
-                              className="h-8 w-[80px] text-xs"
+                              className="h-8 w-[100px] text-xs"
                             />
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Select
-                          value={row.speaker_id ?? "__none__"}
-                          onValueChange={(v) =>
-                            updateRow(i, { speaker_id: v === "__none__" ? null : v })
-                          }
-                        >
-                          <SelectTrigger
-                            className={`h-8 w-[140px] text-xs ${!row.speaker_id ? "border-warning" : ""}`}
+                        </td>
+
+                        {/* Спикер — три состояния */}
+                        <td className="py-2 pr-3">
+                          {row.speaker_status === "PENDING" ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={row.speaker_name_edit}
+                                  onChange={(e) =>
+                                    updateRow(i, { speaker_name_edit: e.target.value })
+                                  }
+                                  className="h-8 w-[110px] text-xs"
+                                  placeholder="Имя спикера"
+                                />
+                                <span className="shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-brand-accent">
+                                  Новый
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateRow(i, {
+                                    speaker_status: "MISSING",
+                                    speaker_id: null,
+                                  })
+                                }
+                                className="text-[10px] text-foreground/50 underline hover:text-foreground"
+                              >
+                                ← выбрать из БД
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <Select
+                                value={row.speaker_id ?? "__none__"}
+                                onValueChange={(v) => {
+                                  if (v === "__create__") {
+                                    updateRow(i, {
+                                      speaker_status: "PENDING",
+                                      speaker_name_edit: row.speaker_name ?? "",
+                                      speaker_id: null,
+                                    });
+                                  } else {
+                                    updateRow(i, {
+                                      speaker_id: v === "__none__" ? null : v,
+                                      speaker_status: v === "__none__" ? "MISSING" : "EXISTING",
+                                    });
+                                  }
+                                }}
+                              >
+                                <SelectTrigger
+                                  className={`h-8 w-[140px] text-xs ${
+                                    row.speaker_status === "MISSING"
+                                      ? "border-destructive ring-1 ring-destructive/50"
+                                      : ""
+                                  }`}
+                                >
+                                  <SelectValue placeholder="Выберите" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem
+                                    value="__none__"
+                                    className="text-xs text-foreground/50"
+                                  >
+                                    — не выбран —
+                                  </SelectItem>
+                                  <SelectItem
+                                    value="__create__"
+                                    className="text-xs font-medium text-brand-accent"
+                                  >
+                                    + Создать нового
+                                  </SelectItem>
+                                  {speakerList.map((s) => (
+                                    <SelectItem key={s.id} value={s.id} className="text-xs">
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-2 pr-3">
+                          <Select
+                            value={row.branch_id ?? "__null__"}
+                            onValueChange={(v) =>
+                              updateRow(i, { branch_id: v === "__null__" ? null : v })
+                            }
                           >
-                            <SelectValue placeholder="Выберите" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__" className="text-xs text-foreground/50">
-                              — не выбран —
-                            </SelectItem>
-                            {speakerList.map((s) => (
-                              <SelectItem key={s.id} value={s.id} className="text-xs">
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {row.speaker_name && !row.speaker_id && (
-                          <p className="mt-0.5 text-[10px] text-warning">
-                            «{row.speaker_name}» — не найден
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Select
-                          value={row.branch_id ?? "__null__"}
-                          onValueChange={(v) =>
-                            updateRow(i, { branch_id: v === "__null__" ? null : v })
-                          }
-                        >
-                          <SelectTrigger className="h-8 w-[130px] text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {canEditNullBranch && (
-                              <SelectItem value="__null__" className="text-xs">
-                                Все филиалы
-                              </SelectItem>
-                            )}
-                            {branches.map((b) => (
-                              <SelectItem key={b.id} value={b.id} className="text-xs">
-                                {b.city}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-2 pr-3">
-                        <input
-                          type="checkbox"
-                          checked={row.is_online}
-                          onChange={(e) => updateRow(i, { is_online: e.target.checked })}
-                          className="size-4 rounded border-border accent-brand-accent"
-                        />
-                      </td>
-                      <td className="py-2 text-xs text-foreground/80">
-                        {row.pricing_type === "FREE"
-                          ? "Бесплатно"
-                          : row.pricing_type === "DONATION"
-                            ? "Донат"
-                            : row.price != null
-                              ? `${new Intl.NumberFormat("ru-RU").format(row.price)} ₽`
-                              : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                            <SelectTrigger className="h-8 w-[130px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {canEditNullBranch && (
+                                <SelectItem value="__null__" className="text-xs">
+                                  Все филиалы
+                                </SelectItem>
+                              )}
+                              {branches.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="text-xs">
+                                  {b.city}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-2 pr-3">
+                          <Select
+                            value={flagsToFormat(row.is_online, row.is_hybrid)}
+                            onValueChange={(v) => updateRow(i, formatToFlags(v as EventFormat))}
+                          >
+                            <SelectTrigger className="h-8 w-[130px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(["OFFLINE", "ONLINE", "HYBRID"] as EventFormat[]).map((f) => (
+                                <SelectItem key={f} value={f} className="text-xs">
+                                  {FORMAT_LABELS[f]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-2 text-xs text-foreground/80">
+                          {row.pricing_type === "FREE"
+                            ? "Бесплатно"
+                            : row.pricing_type === "DONATION"
+                              ? "Донат"
+                              : row.price != null
+                                ? `${new Intl.NumberFormat("ru-RU").format(row.price)} ₽`
+                                : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
