@@ -90,6 +90,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
             canAuthor={canAuthor}
             canEditNullBranch={isGlobal}
             defaultBranchId={user.branch_id}
+            initialDate={filters.from}
           />
         </div>
       </div>

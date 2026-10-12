@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { Button } from "@academy/ui";
 
-import { AgendaList } from "./agenda-list";
 import type { EventCardData } from "./event-card";
 import { EventBatchModal } from "./event-batch-modal";
 import { EventFormModal, type EventFormInitial } from "./event-form-modal";
+import { startOfWeekMonday, WeeklyCalendar } from "./weekly-calendar";
 
 interface BranchOption {
   id: string;
@@ -22,6 +23,7 @@ interface CalendarContentProps {
   canAuthor: boolean; // юзер может вообще создавать события
   canEditNullBranch: boolean; // юзер может ставить branch_id=null (общеакад.)
   defaultBranchId: string | null;
+  initialDate: Date;
 }
 
 const fromCard = (e: EventCardData): EventFormInitial => ({
@@ -52,10 +54,34 @@ export function CalendarContent({
   canAuthor,
   canEditNullBranch,
   defaultBranchId,
+  initialDate,
 }: CalendarContentProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
   const [initial, setInitial] = useState<EventFormInitial | undefined>();
+  const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(initialDate));
+
+  useEffect(() => {
+    setWeekStart(startOfWeekMonday(initialDate));
+  }, [initialDate]);
+
+  const changeWeek = (offset: number) => {
+    const next = new Date(weekStart);
+    next.setDate(next.getDate() + offset * 7);
+    setWeekStart(next);
+    const params = new URLSearchParams(searchParams.toString());
+    const formatDate = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const end = new Date(next);
+    end.setDate(end.getDate() + 6);
+    params.set("period", "custom");
+    params.set("from", formatDate(next));
+    params.set("to", formatDate(end));
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const openCreate = () => {
     setInitial(undefined);
@@ -77,7 +103,13 @@ export function CalendarContent({
         </div>
       )}
 
-      <AgendaList events={events} onEventClick={canAuthor ? openEdit : undefined} />
+      <WeeklyCalendar
+        events={events}
+        weekStart={weekStart}
+        onPreviousWeek={() => changeWeek(-1)}
+        onNextWeek={() => changeWeek(1)}
+        onEventClick={canAuthor ? openEdit : undefined}
+      />
 
       <EventBatchModal
         open={batchOpen}
