@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedBranchProcedure, publicProcedure } from "../trpc";
 import {
   eventByIdSchema,
+  eventConflictInputSchema,
   eventCreateSchema,
   eventDeleteSchema,
   eventListInputSchema,
@@ -82,6 +83,70 @@ export const buildEventListWhere = (
 };
 
 const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
+
+type ConflictComparableEvent = {
+  id: string;
+  title: string;
+  start_at: Date;
+  end_at: Date;
+  speaker_id: string;
+  venue: string | null;
+};
+
+type EventConflictCandidate = Omit<ConflictComparableEvent, "id" | "title" | "venue"> & {
+  id?: string;
+  venue?: string | null;
+};
+
+export type EventConflict = {
+  id: string;
+  title: string;
+  start_at: Date;
+  end_at: Date;
+  reasons: Array<"SPEAKER" | "VENUE">;
+};
+
+const normalizeVenue = (venue: string | null | undefined): string | null => {
+  const normalized = venue?.trim().replace(/\s+/g, " ").toLocaleLowerCase("ru-RU");
+  return normalized || null;
+};
+
+/**
+ * Возвращает только реальные временные пересечения. Соприкасающиеся интервалы
+ * (конец одного совпадает с началом другого) конфликтом не считаются.
+ */
+export const findEventConflicts = (
+  candidate: EventConflictCandidate,
+  events: ConflictComparableEvent[],
+): EventConflict[] => {
+  const candidateVenue = normalizeVenue(candidate.venue);
+
+  return events.flatMap((event) => {
+    if (
+      event.id === candidate.id ||
+      candidate.start_at >= event.end_at ||
+      candidate.end_at <= event.start_at
+    ) {
+      return [];
+    }
+
+    const reasons: EventConflict["reasons"] = [];
+    if (event.speaker_id === candidate.speaker_id) reasons.push("SPEAKER");
+    if (candidateVenue && candidateVenue === normalizeVenue(event.venue)) reasons.push("VENUE");
+
+    return reasons.length === 0
+      ? []
+      : [
+          {
+            id: event.id,
+            title: event.title,
+            start_at: event.start_at,
+            end_at: event.end_at,
+            reasons,
+          },
+        ];
+  });
+};
 
 /**
  * Кто имеет право создавать/редактировать/удалять события.
@@ -278,6 +343,33 @@ export const eventRouter = router({
     }
     return event;
   }),
+
+  conflicts: protectedBranchProcedure
+    .input(eventConflictInputSchema)
+    .query(async ({ ctx, input }) => {
+      assertCanAuthor(ctx.user);
+      const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
+      assertBranchWrite(ctx.branchScope, branchId);
+
+      const events = await ctx.prisma.event.findMany({
+        where: {
+          id: input.id ? { not: input.id } : undefined,
+          start_at: { lt: input.end_at },
+          end_at: { gt: input.start_at },
+          branch_id: branchId,
+        },
+        select: {
+          id: true,
+          title: true,
+          start_at: true,
+          end_at: true,
+          speaker_id: true,
+          venue: true,
+        },
+      });
+
+      return findEventConflicts(input, events);
+    }),
 
   create: protectedBranchProcedure.input(eventCreateSchema).mutation(async ({ ctx, input }) => {
     assertCanAuthor(ctx.user);

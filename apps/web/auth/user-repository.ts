@@ -20,7 +20,7 @@ class PrismaUserRepository implements UserRepository {
     const user = await prisma.user.findUnique({
       where: { email: normalized },
     });
-    if (!user || !user.password_hash) return null;
+    if (!user || !user.email || !user.password_hash) return null;
     return {
       id: user.id,
       name: user.name,

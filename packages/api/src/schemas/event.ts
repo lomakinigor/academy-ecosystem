@@ -42,6 +42,21 @@ export const eventCreateSchema = z.object({
 
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
 
+/** Данные черновика формы для предупреждения о пересечениях в календаре. */
+export const eventConflictInputSchema = z
+  .object({
+    id: cuidSchema.optional(),
+    start_at: z.coerce.date(),
+    end_at: z.coerce.date(),
+    speaker_id: cuidSchema,
+    venue: z.string().max(500).nullable().optional(),
+    branch_id: cuidSchema.nullable().optional(),
+  })
+  .refine((data) => data.end_at > data.start_at, {
+    message: "Время окончания должно быть позже времени начала",
+    path: ["end_at"],
+  });
+
 /**
  * Вход для event.list — фильтры календаря.
  * from/to обязательны (страница календаря всегда отрисовывает диапазон).

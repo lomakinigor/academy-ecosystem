@@ -87,13 +87,22 @@ enum PaymentType {
   EXECUTOR_PAYOUT
 }
 
+enum ContactChannel {
+  EMAIL
+  TELEGRAM
+  WHATSAPP
+  MAX
+}
+
 // ─────────────────────────────────────────────────────────────
 // Core models
 // ─────────────────────────────────────────────────────────────
 
 model User {
   id             String        @id @default(cuid())
-  email          String        @unique
+  // null для карточки, созданной сотрудником: доступ появится после
+  // самостоятельной регистрации клиента по email и паролю.
+  email          String?       @unique
   name           String
   password_hash  String?
   phone          String?
@@ -116,10 +125,28 @@ model User {
   executor_balance ExecutorBalance?
   academic_records AcademicRecord[]
   events_as_speaker Event[]         @relation("EventSpeaker")
+  contacts          UserContact[]
 
   @@index([branch_id])
   @@index([system_role])
   @@index([academic_level])
+}
+
+model UserContact {
+  id               String         @id @default(cuid())
+  user_id          String
+  user             User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  channel          ContactChannel
+  // value сохраняет введённый клиентом адрес/ник/номер, normalized_value —
+  // служебный ключ для поиска и предотвращения дублей в пределах канала.
+  value            String
+  normalized_value String
+  verified_at      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([channel, normalized_value])
+  @@index([user_id])
 }
 
 model Branch {

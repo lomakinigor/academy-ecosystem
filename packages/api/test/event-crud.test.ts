@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import { appRouter } from "../src/root";
-import { canAuthorEvents, canWriteToBranch, resolveBranchId } from "../src/routers/event";
+import {
+  canAuthorEvents,
+  canWriteToBranch,
+  findEventConflicts,
+  resolveBranchId,
+} from "../src/routers/event";
 import type { Context, SessionUser } from "../src/context";
 import type { BranchScope } from "../src/trpc";
 
@@ -80,6 +85,71 @@ describe("canAuthorEvents", () => {
   });
 });
 
+describe("findEventConflicts", () => {
+  const candidate = {
+    id: "evt_new",
+    start_at: new Date("2026-06-01T10:00:00Z"),
+    end_at: new Date("2026-06-01T13:00:00Z"),
+    speaker_id: "u_speaker",
+    venue: "Екатеринбург, 8 Марта, 194Б",
+  };
+
+  it("находит пересечение по одному спикеру", () => {
+    const conflicts = findEventConflicts(candidate, [
+      {
+        id: "evt_speaker",
+        title: "Другой семинар",
+        start_at: new Date("2026-06-01T12:00:00Z"),
+        end_at: new Date("2026-06-01T14:00:00Z"),
+        speaker_id: "u_speaker",
+        venue: "Другой адрес",
+      },
+    ]);
+
+    expect(conflicts).toEqual([
+      expect.objectContaining({ id: "evt_speaker", reasons: ["SPEAKER"] }),
+    ]);
+  });
+
+  it("находит пересечение по адресу, игнорируя регистр и лишние пробелы", () => {
+    const conflicts = findEventConflicts(candidate, [
+      {
+        id: "evt_venue",
+        title: "Практика",
+        start_at: new Date("2026-06-01T09:00:00Z"),
+        end_at: new Date("2026-06-01T11:00:00Z"),
+        speaker_id: "another_speaker",
+        venue: "  екатеринбург, 8   марта, 194б  ",
+      },
+    ]);
+
+    expect(conflicts).toEqual([expect.objectContaining({ id: "evt_venue", reasons: ["VENUE"] })]);
+  });
+
+  it("не считает конфликтом границу времени и само редактируемое событие", () => {
+    const conflicts = findEventConflicts(candidate, [
+      {
+        id: "evt_new",
+        title: "То же событие",
+        start_at: candidate.start_at,
+        end_at: candidate.end_at,
+        speaker_id: candidate.speaker_id,
+        venue: candidate.venue,
+      },
+      {
+        id: "evt_after",
+        title: "Следующее событие",
+        start_at: candidate.end_at,
+        end_at: new Date("2026-06-01T15:00:00Z"),
+        speaker_id: candidate.speaker_id,
+        venue: candidate.venue,
+      },
+    ]);
+
+    expect(conflicts).toEqual([]);
+  });
+});
+
 describe("canWriteToBranch", () => {
   const global: BranchScope = { mode: "global" };
   const scopedMsk: BranchScope = { mode: "scoped", branch_id: "branch_msk" };
@@ -118,6 +188,43 @@ describe("resolveBranchId", () => {
 
   it("undefined + scoped → свой branch", () => {
     expect(resolveBranchId(scopedMsk, undefined)).toBe("branch_msk");
+  });
+});
+
+describe("event.conflicts", () => {
+  const input = {
+    start_at: new Date("2026-07-01T10:00:00Z"),
+    end_at: new Date("2026-07-01T13:00:00Z"),
+    speaker_id: "u_speaker",
+    venue: "Екатеринбург, 8 Марта, 194Б",
+    branch_id: null,
+  };
+
+  it("возвращает предупреждение, но не создаёт и не изменяет событие", async () => {
+    const prisma = makePrisma();
+    prisma.event.findMany.mockResolvedValue([
+      {
+        id: "evt_conflict",
+        title: "Ранее созданная практика",
+        start_at: new Date("2026-07-01T12:00:00Z"),
+        end_at: new Date("2026-07-01T14:00:00Z"),
+        speaker_id: "u_speaker",
+        venue: "Другой адрес",
+      },
+    ]);
+    const ctx = makeCtx(session(), prisma);
+
+    await expect(appRouter.createCaller(ctx).event.conflicts(input)).resolves.toEqual([
+      expect.objectContaining({ id: "evt_conflict", reasons: ["SPEAKER"] }),
+    ]);
+    expect(prisma.event.create).not.toHaveBeenCalled();
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+
+  it("не открывает проверку конфликтов слушателю", async () => {
+    const ctx = makeCtx(session({ system_role: "STUDENT", academic_level: "LISTENER" }));
+
+    await expect(appRouter.createCaller(ctx).event.conflicts(input)).rejects.toThrow(/прав/);
   });
 });
 

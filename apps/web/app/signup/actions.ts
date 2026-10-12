@@ -55,14 +55,55 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
   const password_hash = await bcrypt.hash(parsed.data.password, 10);
 
   try {
-    await prisma.user.create({
-      data: {
-        email,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        password_hash,
+    const existingEmailUser = await prisma.user.findUnique({ where: { email } });
+    if (existingEmailUser) {
+      return {
+        error: "Этот email уже зарегистрирован",
+        fieldErrors: { email: "Email уже используется" },
+      };
+    }
+
+    const matchingManualContact = await prisma.userContact.findUnique({
+      where: {
+        channel_normalized_value: {
+          channel: "EMAIL",
+          normalized_value: email,
+        },
       },
+      select: { user_id: true },
     });
+
+    if (matchingManualContact) {
+      await prisma.user.update({
+        where: { id: matchingManualContact.user_id },
+        data: {
+          email,
+          password_hash,
+          contacts: {
+            updateMany: {
+              where: { channel: "EMAIL", normalized_value: email },
+              data: { value: email },
+            },
+          },
+        },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          email,
+          name: parsed.data.name,
+          phone: parsed.data.phone,
+          password_hash,
+          contacts: {
+            create: {
+              channel: "EMAIL",
+              value: email,
+              normalized_value: email,
+            },
+          },
+        },
+      });
+    }
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return {

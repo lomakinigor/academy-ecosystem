@@ -10,6 +10,7 @@ export default defineConfig({
       ["tests/brand/**", "jsdom"],
       ["tests/trpc/**", "jsdom"],
       ["tests/calendar/**", "jsdom"],
+      ["tests/clients/**", "jsdom"],
     ],
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     setupFiles: ["./tests/setup.ts"],
