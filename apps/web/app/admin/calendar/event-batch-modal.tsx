@@ -233,7 +233,7 @@ export function EventBatchModal({
       }}
     >
       <DialogContent
-        className="max-h-[90vh] max-w-4xl overflow-y-auto"
+        className="max-h-[90vh] max-w-4xl overflow-y-auto p-4 sm:p-6"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
@@ -250,6 +250,7 @@ export function EventBatchModal({
         {step === "input" && (
           <div className="space-y-4">
             <textarea
+              aria-label="Список мероприятий"
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={12}
@@ -302,9 +303,9 @@ export function EventBatchModal({
               )}
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
+            <div className="sm:overflow-x-auto">
+              <table className="block w-full text-sm sm:table [&_td]:block [&_td]:pr-0 sm:[&_td]:table-cell sm:[&_td]:pr-3">
+                <thead className="hidden sm:table-header-group">
                   <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-foreground/60">
                     <th className="py-2 pr-3">✓</th>
                     <th className="py-2 pr-3">Название</th>
@@ -316,35 +317,49 @@ export function EventBatchModal({
                     <th className="py-2">Цена</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="block space-y-4 sm:table-row-group sm:space-y-0">
                   {rows.map((row, i) => {
                     const hasMissing = row.include && row.speaker_status === "MISSING";
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-border/50 transition-colors ${
+                        className={`block rounded-lg border border-border/50 p-3 transition-colors sm:table-row sm:rounded-none sm:border-x-0 sm:border-t-0 sm:p-0 ${
                           !row.include ? "opacity-40" : hasMissing ? "bg-destructive/5" : ""
                         }`}
                       >
                         <td className="py-2 pr-3">
-                          <input
-                            type="checkbox"
-                            title="Включить событие"
-                            checked={row.include}
-                            onChange={(e) => updateRow(i, { include: e.target.checked })}
-                            className="size-4 rounded border-border accent-brand-accent"
-                          />
+                          <label className="flex min-h-11 items-center gap-2 sm:min-h-0">
+                            <input
+                              type="checkbox"
+                              aria-label={`Включить мероприятие ${i + 1}`}
+                              title="Включить событие"
+                              checked={row.include}
+                              onChange={(e) => updateRow(i, { include: e.target.checked })}
+                              className="size-4 rounded border-border accent-brand-accent"
+                            />
+                            <span className="sm:hidden">Мероприятие {i + 1}</span>
+                          </label>
                         </td>
                         <td className="py-2 pr-3">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Название
+                          </span>
                           <Input
+                            aria-label={`Название мероприятия ${i + 1}`}
                             value={row.title}
                             onChange={(e) => updateRow(i, { title: e.target.value })}
-                            className="h-8 min-w-[160px] text-xs"
+                            className="h-11 w-full min-w-0 text-sm sm:h-8 sm:min-w-[160px] sm:text-xs"
                           />
                         </td>
                         <td className="py-2 pr-3">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Тип
+                          </span>
                           <Select value={row.type} onValueChange={(v) => updateRow(i, { type: v })}>
-                            <SelectTrigger className="h-8 w-[120px] text-xs">
+                            <SelectTrigger
+                              aria-label={`Тип мероприятия ${i + 1}`}
+                              className="h-11 w-full text-sm sm:h-8 sm:w-[120px] sm:text-xs"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -357,33 +372,42 @@ export function EventBatchModal({
                           </Select>
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Дата и начало
+                          </span>
                           <div className="flex flex-col gap-1">
                             <Input
                               type="date"
+                              aria-label={`Дата мероприятия ${i + 1}`}
                               value={row.date}
                               onChange={(e) => updateRow(i, { date: e.target.value })}
-                              className="h-8 w-[130px] text-xs"
+                              className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[130px] sm:text-xs"
                             />
                             <Input
                               type="time"
+                              aria-label={`Начало мероприятия ${i + 1}`}
                               value={row.start_time}
                               onChange={(e) => updateRow(i, { start_time: e.target.value })}
-                              className="h-8 w-[100px] text-xs"
+                              className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[100px] sm:text-xs"
                             />
                           </div>
                         </td>
 
                         {/* Спикер — три состояния */}
                         <td className="py-2 pr-3">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Спикер
+                          </span>
                           {row.speaker_status === "PENDING" ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1">
                                 <Input
+                                  aria-label={`Имя нового спикера мероприятия ${i + 1}`}
                                   value={row.speaker_name_edit}
                                   onChange={(e) =>
                                     updateRow(i, { speaker_name_edit: e.target.value })
                                   }
-                                  className="h-8 w-[110px] text-xs"
+                                  className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[110px] sm:text-xs"
                                   placeholder="Имя спикера"
                                 />
                                 <span className="shrink-0 rounded-full border border-brand-accent/40 bg-brand-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-brand-accent">
@@ -398,7 +422,7 @@ export function EventBatchModal({
                                     speaker_id: null,
                                   })
                                 }
-                                className="text-[10px] text-foreground/50 underline hover:text-foreground"
+                                className="min-h-11 text-xs text-foreground/50 underline hover:text-foreground sm:min-h-0 sm:text-[10px]"
                               >
                                 ← выбрать из БД
                               </button>
@@ -423,7 +447,8 @@ export function EventBatchModal({
                                 }}
                               >
                                 <SelectTrigger
-                                  className={`h-8 w-[140px] text-xs ${
+                                  aria-label={`Спикер мероприятия ${i + 1}`}
+                                  className={`h-11 w-full text-sm sm:h-8 sm:w-[140px] sm:text-xs ${
                                     row.speaker_status === "MISSING"
                                       ? "border-destructive ring-1 ring-destructive/50"
                                       : ""
@@ -457,13 +482,19 @@ export function EventBatchModal({
 
                         {branches.length > 0 && (
                           <td className="py-2 pr-3">
+                            <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                              Филиал
+                            </span>
                             <Select
                               value={row.branch_id ?? "__null__"}
                               onValueChange={(v) =>
                                 updateRow(i, { branch_id: v === "__null__" ? null : v })
                               }
                             >
-                              <SelectTrigger className="h-8 w-[130px] text-xs">
+                              <SelectTrigger
+                                aria-label={`Филиал мероприятия ${i + 1}`}
+                                className="h-11 w-full text-sm sm:h-8 sm:w-[130px] sm:text-xs"
+                              >
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -482,11 +513,17 @@ export function EventBatchModal({
                           </td>
                         )}
                         <td className="py-2 pr-3">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Формат
+                          </span>
                           <Select
                             value={flagsToFormat(row.is_online, row.is_hybrid)}
                             onValueChange={(v) => updateRow(i, formatToFlags(v as EventFormat))}
                           >
-                            <SelectTrigger className="h-8 w-[130px] text-xs">
+                            <SelectTrigger
+                              aria-label={`Формат мероприятия ${i + 1}`}
+                              className="h-11 w-full text-sm sm:h-8 sm:w-[130px] sm:text-xs"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -499,6 +536,9 @@ export function EventBatchModal({
                           </Select>
                         </td>
                         <td className="py-2 text-xs text-foreground/80">
+                          <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
+                            Цена
+                          </span>
                           {row.pricing_type === "FREE"
                             ? "Бесплатно"
                             : row.pricing_type === "DONATION"
@@ -528,17 +568,24 @@ export function EventBatchModal({
               type="button"
               variant="ghost"
               size="sm"
+              className="min-h-11"
               onClick={() => setStep("input")}
               disabled={isPending}
             >
               ← Назад к тексту
             </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="min-h-11"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+              >
                 Отмена
               </Button>
               <Button
                 variant="accent"
+                className="min-h-11"
                 onClick={handleCreateAll}
                 disabled={selectedCount === 0 || missingSpeaker || isPending}
                 title={missingSpeaker ? "Выберите спикера для всех событий" : undefined}
