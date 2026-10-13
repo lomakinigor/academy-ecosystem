@@ -18,27 +18,32 @@ export const eventStatusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "COMPLETE
 
 export const pricingTypeSchema = z.enum(["FIXED", "DONATION", "FREE"]);
 
-export const eventCreateSchema = z.object({
-  title: z.string().min(3, "Минимум 3 символа").max(200),
-  description: z.string().max(5000).optional(),
-  type: eventTypeSchema,
-  status: eventStatusSchema.default("PLANNED"),
-  start_at: z.coerce.date(),
-  // end_at опционален — если не передан, роутер ставит start_at + 2 часа
-  end_at: z.coerce.date().optional(),
-  speaker_id: cuidSchema,
-  branch_id: cuidSchema.nullable().optional(),
-  max_participants: z.number().int().positive().optional(),
-  pricing_type: pricingTypeSchema.default("FIXED"),
-  price: z.number().nonnegative().optional(),
-  pricing_note: z.string().max(500).optional(),
-  is_online: z.boolean().default(false),
-  is_hybrid: z.boolean().default(false),
-  venue: z.string().max(500).optional(),
-  tags: z.array(z.string().min(1).max(50)).default([]),
-  is_grading: z.boolean().default(false),
-  program_id: cuidSchema.optional(),
-});
+export const eventCreateSchema = z
+  .object({
+    title: z.string().min(3, "Минимум 3 символа").max(200),
+    description: z.string().max(5000).optional(),
+    type: eventTypeSchema,
+    status: eventStatusSchema.default("PLANNED"),
+    start_at: z.coerce.date(),
+    // end_at опционален — если не передан, роутер ставит start_at + 2 часа
+    end_at: z.coerce.date().optional(),
+    speaker_id: cuidSchema,
+    branch_id: cuidSchema.nullable().optional(),
+    max_participants: z.number().int().positive().optional(),
+    pricing_type: pricingTypeSchema.default("FIXED"),
+    price: z.number().nonnegative().optional(),
+    pricing_note: z.string().max(500).optional(),
+    is_online: z.boolean().default(false),
+    is_hybrid: z.boolean().default(false),
+    venue: z.string().max(500).optional(),
+    tags: z.array(z.string().min(1).max(50)).default([]),
+    is_grading: z.boolean().default(false),
+    program_id: cuidSchema.optional(),
+  })
+  .refine((event) => !event.end_at || event.end_at > event.start_at, {
+    message: "Время окончания должно быть позже времени начала",
+    path: ["end_at"],
+  });
 
 export type EventCreateInput = z.infer<typeof eventCreateSchema>;
 

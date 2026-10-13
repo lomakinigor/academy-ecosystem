@@ -73,7 +73,7 @@ describe("eventCreateSchema", () => {
 
   it("создаёт корректное событие с дефолтами", () => {
     const r = eventCreateSchema.parse(base);
-    expect(r.status).toBe("DRAFT");
+    expect(r.status).toBe("PLANNED");
     expect(r.is_grading).toBe(false);
     expect(r.start_at).toBeInstanceOf(Date);
     expect(r.end_at).toBeInstanceOf(Date);

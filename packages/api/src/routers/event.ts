@@ -388,7 +388,7 @@ export const eventRouter = router({
 
     const existing = await ctx.prisma.event.findUnique({
       where: { id: input.id },
-      select: { id: true, branch_id: true },
+      select: { id: true, branch_id: true, start_at: true, end_at: true },
     });
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
@@ -399,6 +399,17 @@ export const eventRouter = router({
     // И на НОВЫЙ branch если он меняется
     if (input.branch_id !== undefined) {
       assertBranchWrite(ctx.branchScope, input.branch_id);
+    }
+
+    if (input.start_at !== undefined || input.end_at !== undefined) {
+      const start = input.start_at ?? existing.start_at;
+      const end = input.end_at ?? existing.end_at;
+      if (end <= start) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Время окончания должно быть позже времени начала",
+        });
+      }
     }
 
     const { id, ...rest } = input;

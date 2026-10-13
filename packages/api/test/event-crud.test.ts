@@ -292,6 +292,35 @@ describe("event.create — RBAC", () => {
 });
 
 describe("event.update — RBAC", () => {
+  it("отклоняет изменение только окончания раньше сохранённого начала", async () => {
+    const prisma = makePrisma();
+    const caller = appRouter.createCaller(makeCtx(session(), prisma));
+    await expect(
+      caller.event.update({ id: baseEvent.id, end_at: baseEvent.start_at }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+
+  it("отклоняет изменение только начала после сохранённого окончания", async () => {
+    const prisma = makePrisma();
+    const caller = appRouter.createCaller(makeCtx(session(), prisma));
+    await expect(
+      caller.event.update({ id: baseEvent.id, start_at: baseEvent.end_at }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+
+  it("принимает корректные новые границы", async () => {
+    const prisma = makePrisma();
+    const caller = appRouter.createCaller(makeCtx(session(), prisma));
+    const start_at = new Date("2026-07-01T10:00:00Z");
+    const end_at = new Date("2026-07-01T13:00:00Z");
+    await caller.event.update({ id: baseEvent.id, start_at, end_at });
+    expect(prisma.event.update).toHaveBeenCalledWith({
+      where: { id: baseEvent.id },
+      data: { start_at, end_at },
+    });
+  });
   it("BRANCH_ADMIN может обновлять событие своего филиала", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
