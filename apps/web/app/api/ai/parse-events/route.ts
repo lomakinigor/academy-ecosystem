@@ -158,6 +158,7 @@ export async function POST(req: Request) {
     },
     body: JSON.stringify({
       model: "deepseek/deepseek-chat-v3-0324",
+      max_tokens: 8192,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: text },
@@ -168,8 +169,15 @@ export async function POST(req: Request) {
   });
 
   if (!response.ok) {
-    const err = await response.text();
-    return NextResponse.json({ error: `OpenRouter error: ${err}` }, { status: 502 });
+    return NextResponse.json(
+      {
+        error:
+          response.status === 402
+            ? "Недостаточно доступного бюджета для распознавания. Сократите список мероприятий или проверьте баланс OpenRouter."
+            : "Сервис распознавания временно недоступен. Попробуйте позже.",
+      },
+      { status: 502 },
+    );
   }
 
   const completion = (await response.json()) as {
