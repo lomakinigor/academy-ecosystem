@@ -1,6 +1,6 @@
 import type { Prisma } from "@academy/db";
 import { TRPCError } from "@trpc/server";
-import { router, protectedBranchProcedure, publicProcedure } from "../trpc";
+import { router, protectedScheduleProcedure, publicProcedure, isAcademyAdmin } from "../trpc";
 import {
   eventByIdSchema,
   eventConflictInputSchema,
@@ -150,31 +150,9 @@ export const findEventConflicts = (
 
 /**
  * Кто имеет право создавать/редактировать/удалять события.
- * - PRESIDENT/VP — везде
- * - BRANCH_DIRECTOR/BRANCH_ADMIN — только свой филиал и общеакадемические
- * - Магистры/Мастера (academic_level >= MASTER) — только свой филиал и общеакадемические
- * - Все остальные — UNAUTHORIZED
+ * В MVP доступ есть только BRANCH_ADMIN и выше. Academic level не даёт права записи.
  */
-const ACADEMIC_LEVEL_RANK: Record<string, number> = {
-  LISTENER: 0,
-  MASTER: 1,
-  MAGISTER: 2,
-  FOUNDER: 3,
-};
-
-const SYSTEM_ROLE_RANK: Record<string, number> = {
-  STUDENT: 0,
-  BRANCH_ADMIN: 1,
-  BRANCH_DIRECTOR: 2,
-  VICE_PRESIDENT: 3,
-  PRESIDENT: 4,
-};
-
-export const canAuthorEvents = (user: SessionUser): boolean => {
-  const adminEnough = (SYSTEM_ROLE_RANK[user.system_role] ?? 0) >= 1; // BRANCH_ADMIN+
-  const academicEnough = (ACADEMIC_LEVEL_RANK[user.academic_level] ?? 0) >= 1; // MASTER+
-  return adminEnough || academicEnough;
-};
+export const canAuthorEvents = isAcademyAdmin;
 
 /**
  * Может ли юзер писать в указанный branch_id (с учётом scope).
@@ -297,8 +275,11 @@ export const eventRouter = router({
     return event;
   }),
 
-  list: protectedBranchProcedure.input(eventListInputSchema).query(async ({ ctx, input }) => {
-    const where = buildEventListWhere(input, ctx.branchScope);
+  list: protectedScheduleProcedure.input(eventListInputSchema).query(async ({ ctx, input }) => {
+    const where = buildEventListWhere(
+      isAcademyAdmin(ctx.user) ? { ...input, branch_id: undefined } : input,
+      ctx.branchScope,
+    );
 
     const events = await ctx.prisma.event.findMany({
       where,
@@ -324,7 +305,7 @@ export const eventRouter = router({
     };
   }),
 
-  byId: protectedBranchProcedure.input(eventByIdSchema).query(async ({ ctx, input }) => {
+  byId: protectedScheduleProcedure.input(eventByIdSchema).query(async ({ ctx, input }) => {
     const event = await ctx.prisma.event.findUnique({
       where: { id: input.id },
       include: {
@@ -344,7 +325,7 @@ export const eventRouter = router({
     return event;
   }),
 
-  conflicts: protectedBranchProcedure
+  conflicts: protectedScheduleProcedure
     .input(eventConflictInputSchema)
     .query(async ({ ctx, input }) => {
       assertCanAuthor(ctx.user);
@@ -356,7 +337,6 @@ export const eventRouter = router({
           id: input.id ? { not: input.id } : undefined,
           start_at: { lt: input.end_at },
           end_at: { gt: input.start_at },
-          branch_id: branchId,
         },
         select: {
           id: true,
@@ -371,7 +351,7 @@ export const eventRouter = router({
       return findEventConflicts(input, events);
     }),
 
-  create: protectedBranchProcedure.input(eventCreateSchema).mutation(async ({ ctx, input }) => {
+  create: protectedScheduleProcedure.input(eventCreateSchema).mutation(async ({ ctx, input }) => {
     assertCanAuthor(ctx.user);
     const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
     assertBranchWrite(ctx.branchScope, branchId);
@@ -403,7 +383,7 @@ export const eventRouter = router({
     return created;
   }),
 
-  update: protectedBranchProcedure.input(eventUpdateSchema).mutation(async ({ ctx, input }) => {
+  update: protectedScheduleProcedure.input(eventUpdateSchema).mutation(async ({ ctx, input }) => {
     assertCanAuthor(ctx.user);
 
     const existing = await ctx.prisma.event.findUnique({
@@ -429,7 +409,7 @@ export const eventRouter = router({
     return updated;
   }),
 
-  delete: protectedBranchProcedure.input(eventDeleteSchema).mutation(async ({ ctx, input }) => {
+  delete: protectedScheduleProcedure.input(eventDeleteSchema).mutation(async ({ ctx, input }) => {
     assertCanAuthor(ctx.user);
 
     const existing = await ctx.prisma.event.findUnique({

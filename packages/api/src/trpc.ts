@@ -62,3 +62,28 @@ export const protectedBranchProcedure = protectedProcedure.use(({ ctx, next }) =
     },
   }),
 );
+
+/** В web-MVP администраторы ведут общее расписание; другие области доступа не меняем. */
+export const isAcademyAdmin = (user: SessionUser): boolean =>
+  ["PRESIDENT", "VICE_PRESIDENT", "BRANCH_DIRECTOR", "BRANCH_ADMIN"].includes(user.system_role);
+
+export const protectedScheduleProcedure = protectedProcedure.use(({ ctx, next }) =>
+  next({
+    ctx: {
+      ...ctx,
+      branchScope: isAcademyAdmin(ctx.user)
+        ? { mode: "global" as const }
+        : computeBranchScope(ctx.user),
+    },
+  }),
+);
+
+export const scheduleAdminProcedure = protectedScheduleProcedure.use(({ ctx, next }) => {
+  if (!isAcademyAdmin(ctx.user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Недостаточно прав для управления расписанием",
+    });
+  }
+  return next();
+});

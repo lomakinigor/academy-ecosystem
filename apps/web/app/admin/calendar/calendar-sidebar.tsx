@@ -107,7 +107,11 @@ function SidebarBody({ branches, total, onApplied }: SidebarBodyProps) {
   }, [searchParams]);
 
   const updateUrl = (next: Partial<CalendarFilters>) => {
-    const merged: Partial<CalendarFilters> = { ...filters, ...next };
+    const merged: Partial<CalendarFilters> = {
+      ...filters,
+      ...next,
+      ...(branches.length === 0 ? { branch_id: undefined } : {}),
+    };
     const sp = serializeCalendarFilters(merged);
     const url = sp.toString() ? `${pathname}?${sp.toString()}` : pathname;
     startTransition(() => {
@@ -212,27 +216,29 @@ function SidebarBody({ branches, total, onApplied }: SidebarBodyProps) {
 
       <Separator />
 
-      <div>
-        <SectionTitle>Филиал</SectionTitle>
-        <div className="mt-2">
-          <Select
-            value={filters.branch_id ?? "all"}
-            onValueChange={(v) => updateUrl({ branch_id: v === "all" ? undefined : v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Все филиалы" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все филиалы</SelectItem>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {branches.length > 0 && (
+        <div>
+          <SectionTitle>Филиал</SectionTitle>
+          <div className="mt-2">
+            <Select
+              value={filters.branch_id ?? "all"}
+              onValueChange={(v) => updateUrl({ branch_id: v === "all" ? undefined : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Все филиалы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все филиалы</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       <Separator />
 

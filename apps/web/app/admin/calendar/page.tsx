@@ -13,25 +13,19 @@ interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;
 }
 
-const GLOBAL_ROLES = new Set<string>([SystemRole.PRESIDENT, SystemRole.VICE_PRESIDENT]);
-
 export default async function CalendarPage({ searchParams }: PageProps) {
-  const user = await requireRole(SystemRole.BRANCH_ADMIN);
+  await requireRole(SystemRole.BRANCH_ADMIN);
   const filters = parseCalendarFilters(searchParams);
   const caller = await getServerCaller();
 
-  const [eventsResult, branches] = await Promise.all([
-    caller.event.list({
-      from: filters.from,
-      to: filters.to,
-      branch_id: filters.branch_id ?? undefined,
-      types: filters.types.length > 0 ? filters.types : undefined,
-      search: filters.search,
-      speaker_id: undefined,
-      is_online: filters.is_online,
-    }),
-    caller.branch.list(),
-  ]);
+  const eventsResult = await caller.event.list({
+    from: filters.from,
+    to: filters.to,
+    types: filters.types.length > 0 ? filters.types : undefined,
+    search: filters.search,
+    speaker_id: undefined,
+    is_online: filters.is_online,
+  });
 
   const events: EventCardData[] = eventsResult.events
     .filter((ev) => ev.speaker != null)
@@ -58,16 +52,8 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       bookings_count: ev._count.bookings,
     }));
 
-  const isGlobal = GLOBAL_ROLES.has(user.system_role);
-
   // Все кто прошли requireRole(BRANCH_ADMIN) могут создавать события
   const canAuthor = true;
-
-  const branchOptions = branches.map((b) => ({
-    id: b.id,
-    name: b.name,
-    city: b.city,
-  }));
 
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
@@ -76,20 +62,20 @@ export default async function CalendarPage({ searchParams }: PageProps) {
           РАСПИСАНИЕ
         </h1>
         <p className="mt-1 text-sm text-foreground/70">
-          Все события академии — фильтруйте по периоду, направлениям и филиалам.
+          Все события академии — фильтруйте по периоду и направлениям.
         </p>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <CalendarSidebar branches={branchOptions} total={events.length} />
+        <CalendarSidebar branches={[]} total={events.length} />
 
         <div>
           <CalendarContent
             events={events}
-            branches={branchOptions}
+            branches={[]}
             canAuthor={canAuthor}
-            canEditNullBranch={isGlobal}
-            defaultBranchId={user.branch_id}
+            canEditNullBranch={true}
+            defaultBranchId={null}
             initialDate={filters.from}
           />
         </div>

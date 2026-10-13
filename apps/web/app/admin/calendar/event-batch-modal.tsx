@@ -139,7 +139,7 @@ export function EventBatchModal({
           }
           return {
             ...e,
-            branch_id: e.branch_id ?? defaultBranchId,
+            branch_id: branches.length === 0 ? null : (e.branch_id ?? defaultBranchId),
             include: true,
             is_hybrid: false,
             speaker_status,
@@ -311,7 +311,7 @@ export function EventBatchModal({
                     <th className="py-2 pr-3">Тип</th>
                     <th className="py-2 pr-3">Дата и начало</th>
                     <th className="py-2 pr-3">Спикер</th>
-                    <th className="py-2 pr-3">Филиал</th>
+                    {branches.length > 0 && <th className="py-2 pr-3">Филиал</th>}
                     <th className="py-2 pr-3">Формат</th>
                     <th className="py-2">Цена</th>
                   </tr>
@@ -455,30 +455,32 @@ export function EventBatchModal({
                           )}
                         </td>
 
-                        <td className="py-2 pr-3">
-                          <Select
-                            value={row.branch_id ?? "__null__"}
-                            onValueChange={(v) =>
-                              updateRow(i, { branch_id: v === "__null__" ? null : v })
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-[130px] text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {canEditNullBranch && (
-                                <SelectItem value="__null__" className="text-xs">
-                                  Все филиалы
-                                </SelectItem>
-                              )}
-                              {branches.map((b) => (
-                                <SelectItem key={b.id} value={b.id} className="text-xs">
-                                  {b.city}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
+                        {branches.length > 0 && (
+                          <td className="py-2 pr-3">
+                            <Select
+                              value={row.branch_id ?? "__null__"}
+                              onValueChange={(v) =>
+                                updateRow(i, { branch_id: v === "__null__" ? null : v })
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[130px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {canEditNullBranch && (
+                                  <SelectItem value="__null__" className="text-xs">
+                                    Все филиалы
+                                  </SelectItem>
+                                )}
+                                {branches.map((b) => (
+                                  <SelectItem key={b.id} value={b.id} className="text-xs">
+                                    {b.city}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                        )}
                         <td className="py-2 pr-3">
                           <Select
                             value={flagsToFormat(row.is_online, row.is_hybrid)}

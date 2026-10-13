@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedBranchProcedure } from "../trpc";
+import { router, protectedScheduleProcedure, scheduleAdminProcedure } from "../trpc";
 import { cuidSchema } from "../schemas/common";
 
 /**
@@ -13,7 +13,7 @@ export const userRouter = router({
    * Для scoped-юзера ограничиваем своим филиалом + общесетевые
    * (PRESIDENT/VP/founder без branch_id видны всем).
    */
-  listSpeakers: protectedBranchProcedure.query(async ({ ctx }) => {
+  listSpeakers: protectedScheduleProcedure.query(async ({ ctx }) => {
     const baseFilter = { is_speaker: true } as const;
     if (ctx.branchScope.mode === "global") {
       return ctx.prisma.user.findMany({
@@ -45,7 +45,7 @@ export const userRouter = router({
     });
   }),
 
-  createSpeaker: protectedBranchProcedure
+  createSpeaker: scheduleAdminProcedure
     .input(z.object({ name: z.string().min(2).max(200), phone: z.string().max(50).optional() }))
     .mutation(async ({ ctx, input }) => {
       const placeholderEmail = `speaker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@noemail.local`;
@@ -62,7 +62,7 @@ export const userRouter = router({
       });
     }),
 
-  updateSpeaker: protectedBranchProcedure
+  updateSpeaker: scheduleAdminProcedure
     .input(
       z.object({
         id: cuidSchema,
@@ -84,7 +84,7 @@ export const userRouter = router({
       });
     }),
 
-  deleteSpeaker: protectedBranchProcedure
+  deleteSpeaker: scheduleAdminProcedure
     .input(z.object({ id: cuidSchema }))
     .mutation(async ({ ctx, input }) => {
       const speaker = await ctx.prisma.user.findUnique({

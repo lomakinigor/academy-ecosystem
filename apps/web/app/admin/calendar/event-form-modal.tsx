@@ -360,26 +360,28 @@ export function EventFormModal({
               </Select>
             </Field>
 
-            <Field label="Филиал">
-              <Select
-                value={branchId === "" ? "__null__" : branchId}
-                onValueChange={(v) => setBranchId(v === "__null__" ? "" : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите филиал" />
-                </SelectTrigger>
-                <SelectContent>
-                  {canEditNullBranch && (
-                    <SelectItem value="__null__">Все филиалы (общеакадемическое)</SelectItem>
-                  )}
-                  {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            {branches.length > 0 && (
+              <Field label="Филиал">
+                <Select
+                  value={branchId === "" ? "__null__" : branchId}
+                  onValueChange={(v) => setBranchId(v === "__null__" ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите филиал" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {canEditNullBranch && (
+                      <SelectItem value="__null__">Все филиалы (общеакадемическое)</SelectItem>
+                    )}
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
 
             <Field label="Начало">
               <Input

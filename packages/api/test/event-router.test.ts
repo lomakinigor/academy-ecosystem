@@ -189,7 +189,7 @@ describe("eventRouter.list — RBAC по филиалам", () => {
     expect(branchClause).toBeUndefined();
   });
 
-  it("BRANCH_ADMIN без явного фильтра → OR(свой, null)", async () => {
+  it("BRANCH_ADMIN без явного фильтра → общее расписание", async () => {
     const sess = session({
       system_role: "BRANCH_ADMIN",
       branch_id: "branch_msk",
@@ -198,27 +198,28 @@ describe("eventRouter.list — RBAC по филиалам", () => {
     const or = and.find((c) => "OR" in c && Array.isArray((c as { OR: unknown[] }).OR)) as
       | { OR: Array<Record<string, unknown>> }
       | undefined;
-    expect(or?.OR).toEqual([{ branch_id: "branch_msk" }, { branch_id: null }]);
+    expect(or).toBeUndefined();
   });
 
-  it("BRANCH_ADMIN при попытке смотреть чужой филиал → never-фильтр", async () => {
+  it("BRANCH_ADMIN со старым фильтром другого филиала → общее расписание", async () => {
     const sess = session({
       system_role: "BRANCH_ADMIN",
       branch_id: "branch_msk",
     });
     const and = await collectWhere(sess, "branch_alien");
     const never = and.find((c) => "id" in c);
-    expect(never).toEqual({ id: "__never__" });
+    expect(never).toBeUndefined();
+    expect(and.find((c) => "branch_id" in c || "OR" in c)).toBeUndefined();
   });
 
-  it("BRANCH_ADMIN при явном своём филиале → точечный фильтр", async () => {
+  it("BRANCH_ADMIN со старым фильтром своего филиала → общее расписание", async () => {
     const sess = session({
       system_role: "BRANCH_ADMIN",
       branch_id: "branch_msk",
     });
     const and = await collectWhere(sess, "branch_msk");
     const branch = and.find((c) => "branch_id" in c);
-    expect(branch).toEqual({ branch_id: "branch_msk" });
+    expect(branch).toBeUndefined();
   });
 
   it("STUDENT (магистр) видит свой филиал и общеакадемические события", async () => {

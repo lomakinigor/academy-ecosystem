@@ -73,10 +73,10 @@ describe("canAuthorEvents", () => {
   it("BRANCH_ADMIN/STUDENT/MASTER — да (admin enough)", () => {
     expect(canAuthorEvents(session({ system_role: "BRANCH_ADMIN" }).user)).toBe(true);
   });
-  it("STUDENT/MASTER — да (academic enough)", () => {
+  it("STUDENT/MASTER — нет: academic_level не даёт доступ к управлению", () => {
     expect(
       canAuthorEvents(session({ system_role: "STUDENT", academic_level: "MASTER" }).user),
-    ).toBe(true);
+    ).toBe(false);
   });
   it("STUDENT/LISTENER — нет", () => {
     expect(
@@ -254,18 +254,18 @@ describe("event.create — RBAC", () => {
     expect(create.mock.calls[0][0].data.branch_id).toBe("branch_msk");
   });
 
-  it("BRANCH_ADMIN не может создавать в чужом филиале", async () => {
+  it("BRANCH_ADMIN может создавать события со старой меткой другого филиала", async () => {
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }));
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.create({ ...baseInput, branch_id: "branch_chel" })).rejects.toThrow(
-      TRPCError,
-    );
+    await expect(
+      caller.event.create({ ...baseInput, branch_id: "branch_chel" }),
+    ).resolves.toBeDefined();
   });
 
-  it("BRANCH_ADMIN не может создавать общеакадемическое (null)", async () => {
+  it("BRANCH_ADMIN может создавать общеакадемическое (null)", async () => {
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }));
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.create({ ...baseInput, branch_id: null })).rejects.toThrow(TRPCError);
+    await expect(caller.event.create({ ...baseInput, branch_id: null })).resolves.toBeDefined();
   });
 
   it("LISTENER не может создавать", async () => {
@@ -282,12 +282,12 @@ describe("event.create — RBAC", () => {
     );
   });
 
-  it("BRANCH_ADMIN без явного branch_id → подставляется свой", async () => {
+  it("BRANCH_ADMIN без явного branch_id → общее событие", async () => {
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }));
     const caller = appRouter.createCaller(ctx);
     await caller.event.create({ ...baseInput });
     const create = ctx.prisma.event.create as ReturnType<typeof vi.fn>;
-    expect(create.mock.calls[0][0].data.branch_id).toBe("branch_msk");
+    expect(create.mock.calls[0][0].data.branch_id).toBeNull();
   });
 });
 
@@ -304,7 +304,7 @@ describe("event.update — RBAC", () => {
     expect(prisma.event.update).toHaveBeenCalled();
   });
 
-  it("BRANCH_ADMIN не может обновлять чужое событие", async () => {
+  it("BRANCH_ADMIN может обновлять событие другого филиала", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "evt1",
@@ -312,10 +312,12 @@ describe("event.update — RBAC", () => {
     });
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }), prisma);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.update({ id: "evt1", title: "Захват" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.event.update({ id: "evt1", title: "Общее расписание" }),
+    ).resolves.toBeDefined();
   });
 
-  it("BRANCH_ADMIN не может перевести своё событие в чужой филиал", async () => {
+  it("BRANCH_ADMIN может изменить старую метку филиала", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "evt1",
@@ -323,12 +325,12 @@ describe("event.update — RBAC", () => {
     });
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }), prisma);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.update({ id: "evt1", branch_id: "branch_chel" })).rejects.toThrow(
-      TRPCError,
-    );
+    await expect(
+      caller.event.update({ id: "evt1", branch_id: "branch_chel" }),
+    ).resolves.toBeDefined();
   });
 
-  it("BRANCH_ADMIN не может сделать своё событие общеакадемическим", async () => {
+  it("BRANCH_ADMIN может сделать событие общеакадемическим", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "evt1",
@@ -336,7 +338,7 @@ describe("event.update — RBAC", () => {
     });
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }), prisma);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.update({ id: "evt1", branch_id: null })).rejects.toThrow(TRPCError);
+    await expect(caller.event.update({ id: "evt1", branch_id: null })).resolves.toBeDefined();
   });
 
   it("404 при отсутствии события", async () => {
@@ -365,7 +367,7 @@ describe("event.delete — RBAC", () => {
     expect(prisma.event.delete).toHaveBeenCalled();
   });
 
-  it("BRANCH_ADMIN не может удалить чужое событие", async () => {
+  it("BRANCH_ADMIN может удалить событие из общей базы", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "evt1",
@@ -373,12 +375,12 @@ describe("event.delete — RBAC", () => {
     });
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }), prisma);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.delete({ id: "evt1" })).rejects.toThrow(TRPCError);
+    await expect(caller.event.delete({ id: "evt1" })).resolves.toEqual({ id: "evt1" });
   });
 });
 
 describe("event.byId — branch isolation для read", () => {
-  it("scoped юзер не видит чужое событие (404)", async () => {
+  it("BRANCH_ADMIN видит событие другого филиала", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...baseEvent,
@@ -386,7 +388,9 @@ describe("event.byId — branch isolation для read", () => {
     });
     const ctx = makeCtx(session({ system_role: "BRANCH_ADMIN", branch_id: "branch_msk" }), prisma);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.event.byId({ id: "evt1" })).rejects.toThrow(/NOT_FOUND/i);
+    await expect(caller.event.byId({ id: "evt1" })).resolves.toMatchObject({
+      branch_id: "branch_chel",
+    });
   });
 
   it("scoped юзер видит общеакадемические события (branch_id=null)", async () => {

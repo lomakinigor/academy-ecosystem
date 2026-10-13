@@ -70,6 +70,10 @@ beforeEach(() => {
 });
 
 describe("Форма: время и подтверждение пересечений", () => {
+  it("в общей админке не предлагает выбор филиала", () => {
+    showForm();
+    expect(screen.queryByText("Филиал")).not.toBeInTheDocument();
+  });
   it("показывает день недели и сохраняет исходное окончание", async () => {
     showForm();
     expect(screen.getByText(/понедельник/i)).toBeInTheDocument();
