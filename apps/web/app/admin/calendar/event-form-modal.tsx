@@ -303,15 +303,15 @@ export function EventFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-6 [&_input]:min-h-11 [&_button]:min-h-11">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col items-start justify-between gap-2 sm:flex-row">
             <div>
               <DialogTitle>{isEdit ? "Редактировать событие" : "Новое событие"}</DialogTitle>
               <DialogDescription className="mt-1">
                 {isEdit
                   ? "Изменения сохранятся сразу после нажатия «Сохранить»"
-                  : "Заполните основные поля. Все они обязательны для публикации."}
+                  : "Карточка мероприятия: название, дата и время, спикер, место, стоимость и количество мест. Дополнительные поля можно оставить пустыми."}
               </DialogDescription>
             </div>
             {!isEdit && onSwitchToBatch && (
@@ -609,7 +609,7 @@ export function EventFormModal({
             ) : (
               <span />
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
                 variant="ghost"

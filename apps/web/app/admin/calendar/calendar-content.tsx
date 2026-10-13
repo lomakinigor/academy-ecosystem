@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@academy/ui";
 
@@ -95,10 +95,19 @@ export function CalendarContent({
   return (
     <>
       {canAuthor && (
-        <div className="mb-4 flex justify-end gap-2">
-          <Button type="button" variant="accent" size="sm" onClick={openCreate}>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setBatchOpen(true)}
+          >
+            <Sparkles />
+            Пакетный ввод
+          </Button>
+          <Button type="button" variant="accent" className="min-h-11" onClick={openCreate}>
             <Plus />
-            Создать событие
+            Создать вручную
           </Button>
         </div>
       )}

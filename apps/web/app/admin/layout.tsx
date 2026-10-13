@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { isConfiguredOwner } from "@academy/api";
 
 import { requireRole } from "@/lib/auth/helpers";
 import { SystemRole } from "@/lib/auth/types";
@@ -9,6 +10,7 @@ import type { AcademicLevel as UIAcademicLevel } from "@academy/ui";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
 import { LogoutButton } from "./logout-button";
+import { AdminNav } from "./admin-nav";
 
 const academicLevelToUI = (level: string): UIAcademicLevel => {
   const lower = level.toLowerCase();
@@ -35,36 +37,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               <div className="font-medium text-brand-primary">{user.name}</div>
               <div className="text-xs text-foreground/60">{user.email}</div>
             </div>
-            <AcademicBadge level={academicLevelToUI(user.academic_level)} size="sm" />
+            {isConfiguredOwner(user.id) ? (
+              <span className="rounded-full border border-brand-accent/40 bg-brand-accent/10 px-3 py-1 text-xs font-semibold text-brand-primary">
+                Владелец
+              </span>
+            ) : (
+              <AcademicBadge level={academicLevelToUI(user.academic_level)} size="sm" />
+            )}
             <LogoutButton />
           </div>
 
-          <nav className="order-3 flex w-full gap-1 overflow-x-auto pb-1 text-sm sm:order-none sm:w-auto sm:pb-0">
-            <Link
-              href="/admin/finance"
-              className="shrink-0 rounded-md px-3 py-2 text-foreground/70 transition-colors hover:bg-brand-warm hover:text-brand-primary"
-            >
-              Финансы
-            </Link>
-            <Link
-              href="/admin/marketing"
-              className="shrink-0 rounded-md px-3 py-2 text-foreground/70 transition-colors hover:bg-brand-warm hover:text-brand-primary"
-            >
-              Маркетинг
-            </Link>
-            <Link
-              href="/admin/calendar"
-              className="shrink-0 rounded-md px-3 py-2 text-foreground/70 transition-colors hover:bg-brand-warm hover:text-brand-primary"
-            >
-              Мероприятия
-            </Link>
-            <Link
-              href="/admin/clients"
-              className="shrink-0 rounded-md px-3 py-2 text-foreground/70 transition-colors hover:bg-brand-warm hover:text-brand-primary"
-            >
-              Клиенты
-            </Link>
-          </nav>
+          <AdminNav />
         </div>
       </header>
 
