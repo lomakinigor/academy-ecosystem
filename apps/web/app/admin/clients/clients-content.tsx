@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import {
@@ -36,7 +37,13 @@ const CONTACT_LABELS: Record<ContactChannel, string> = {
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "long", year: "numeric" }).format(date);
 
-export function ClientsContent({ clients }: { clients: ClientCard[] }) {
+export function ClientsContent({
+  clients,
+  isOwner = false,
+}: {
+  clients: ClientCard[];
+  isOwner?: boolean;
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -93,6 +100,15 @@ export function ClientsContent({ clients }: { clients: ClientCard[] }) {
           Добавить клиента
         </Button>
       </header>
+
+      {isOwner && (
+        <Link
+          href="/admin/clients/administrators"
+          className="mb-6 block rounded-lg border border-brand-accent/40 bg-brand-warm p-3 text-sm font-semibold text-brand-primary"
+        >
+          Управление администраторами
+        </Link>
+      )}
 
       <div className="space-y-3">
         {clients.length === 0 ? (

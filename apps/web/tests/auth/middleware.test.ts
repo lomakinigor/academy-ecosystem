@@ -9,6 +9,15 @@ vi.mock("@/auth", () => ({
 import middleware, { config } from "@/middleware";
 
 describe("middleware module — smoke", () => {
+  it("admin-layout проверяет актуальную роль, а не отклоняется по старому JWT после назначения", () => {
+    const handler = middleware as unknown as (req: unknown) => Response;
+    const response = handler({
+      nextUrl: new URL("https://example.test/admin/calendar"),
+      url: "https://example.test/admin/calendar",
+      auth: { user: { system_role: "STUDENT" } },
+    });
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
   it("exports a default handler function", () => {
     expect(typeof middleware).toBe("function");
   });

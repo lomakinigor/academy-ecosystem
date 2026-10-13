@@ -1,5 +1,5 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter, createContextInner, type SessionUser } from "@academy/api";
+import { appRouter, createContext, type SessionUser } from "@academy/api";
 import { auth } from "@/auth";
 
 const handler = async (req: Request) => {
@@ -21,7 +21,7 @@ const handler = async (req: Request) => {
           }
         : null;
 
-      return createContextInner({
+      return createContext({
         session: sessionUser ? { user: sessionUser } : null,
       });
     },

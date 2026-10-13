@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import type { Session } from "next-auth";
 
+const refreshUser = vi.hoisted(() => vi.fn(async (user: unknown) => user));
+vi.mock("@academy/api", () => ({ refreshSessionUser: refreshUser }));
+
 vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
@@ -46,9 +49,15 @@ function session(u: SessionUser): Session {
 
 beforeEach(() => {
   authMock.mockReset();
+  refreshUser.mockReset().mockImplementation(async (user: unknown) => user);
 });
 
 describe("getCurrentUser", () => {
+  it("использует снятые права из базы вместо роли старой сессии", async () => {
+    authMock.mockResolvedValue(session(user({ system_role: SystemRole.BRANCH_ADMIN })));
+    refreshUser.mockResolvedValueOnce(user({ system_role: SystemRole.STUDENT }));
+    expect((await getCurrentUser())?.system_role).toBe(SystemRole.STUDENT);
+  });
   it("returns null when there is no session", async () => {
     authMock.mockResolvedValue(null);
     expect(await getCurrentUser()).toBeNull();

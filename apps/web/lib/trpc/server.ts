@@ -1,5 +1,5 @@
 import "server-only";
-import { appRouter, createContextInner, type SessionUser } from "@academy/api";
+import { appRouter, createContext, type SessionUser } from "@academy/api";
 import { auth } from "@/auth";
 
 /**
@@ -22,7 +22,7 @@ export async function getServerCaller() {
       }
     : null;
 
-  const ctx = createContextInner({
+  const ctx = await createContext({
     session: sessionUser ? { user: sessionUser } : null,
   });
 

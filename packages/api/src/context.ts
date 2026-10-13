@@ -24,8 +24,31 @@ export const createContextInner = (opts: CreateContextOptions) => ({
   prisma,
 });
 
+/** Роль JWT не является источником прав после их изменения владельцем. */
+export const refreshSessionUser = async (
+  user: SessionUser,
+  db: Pick<typeof prisma, "user"> = prisma,
+): Promise<SessionUser | null> => {
+  const current = await db.user.findFirst({
+    where: { id: user.id, email: { not: null }, password_hash: { not: null } },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      system_role: true,
+      academic_level: true,
+      branch_id: true,
+      is_speaker: true,
+    },
+  });
+  return current?.email ? { ...current, email: current.email } : null;
+};
+
 export const createContext = async (
   opts: CreateContextOptions,
-): Promise<ReturnType<typeof createContextInner>> => createContextInner(opts);
+): Promise<ReturnType<typeof createContextInner>> => {
+  const user = opts.session?.user ? await refreshSessionUser(opts.session.user) : null;
+  return createContextInner({ session: user ? { user } : null });
+};
 
 export type Context = inferAsyncReturnType<typeof createContext>;

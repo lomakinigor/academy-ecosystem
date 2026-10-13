@@ -17,7 +17,10 @@ export default auth((req: NextRequest & { auth: import("next-auth").Session | nu
     return NextResponse.redirect(loginUrl);
   }
 
-  if (!hasRoleAtLeast(session.user, rule.minRole)) {
+  // В /admin актуальные права из БД проверяет server layout и каждый API-запрос.
+  // JWT может ещё содержать роль до назначения/снятия администратором.
+  const adminTree = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (!adminTree && !hasRoleAtLeast(session.user, rule.minRole)) {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 

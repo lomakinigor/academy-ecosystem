@@ -1,15 +1,14 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import {
-  canAccessBranch as canAccessBranchPure,
-  hasRoleAtLeast,
-} from "./rbac";
+import { refreshSessionUser } from "@academy/api";
+import { canAccessBranch as canAccessBranchPure, hasRoleAtLeast } from "./rbac";
 import type { SessionUser, SystemRole } from "./types";
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
-  return (session?.user as SessionUser | undefined) ?? null;
+  const user = session?.user as SessionUser | undefined;
+  return user ? ((await refreshSessionUser(user)) as SessionUser | null) : null;
 }
 
 export async function requireUser(): Promise<SessionUser> {
@@ -30,10 +29,7 @@ export async function requireBranch(branchId: string): Promise<SessionUser> {
   return user;
 }
 
-export async function canAccessBranch(
-  userId: string,
-  branchId: string,
-): Promise<boolean> {
+export async function canAccessBranch(userId: string, branchId: string): Promise<boolean> {
   const user = await getCurrentUser();
   if (!user || user.id !== userId) return false;
   return canAccessBranchPure(user, branchId);

@@ -5,6 +5,7 @@ import { bookingRouter } from "./routers/booking";
 import { clientRouter } from "./routers/client";
 import { eventRouter } from "./routers/event";
 import { userRouter } from "./routers/user";
+import { administrationRouter } from "./routers/administration";
 
 export const appRouter = router({
   health: healthRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   clients: clientRouter,
   event: eventRouter,
   user: userRouter,
+  administration: administrationRouter,
 });
 
 export type AppRouter = typeof appRouter;
