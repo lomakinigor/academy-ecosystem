@@ -22,6 +22,7 @@ import {
 
 import { trpc } from "@/lib/trpc/client";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
+import { getWeekDays, startOfWeekMonday } from "./weekly-calendar";
 
 type PricingType = "FIXED" | "DONATION" | "FREE";
 type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -136,6 +137,8 @@ export function EventFormModal({
   const [type, setType] = useState<EventTypeValue>("LESSON");
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [branchId, setBranchId] = useState<string>("");
   const [speakerId, setSpeakerId] = useState("");
   const [format, setFormat] = useState<EventFormat>("OFFLINE");
@@ -145,6 +148,22 @@ export function EventFormModal({
   const [pricingNote, setPricingNote] = useState("");
   const [maxParticipants, setMaxParticipants] = useState<string>("");
   const [tagsRaw, setTagsRaw] = useState("");
+
+  const startDate = fromLocalInput(start);
+  const endDate = fromLocalInput(end);
+  const validRange = Number.isFinite(startDate.getTime()) && endDate > startDate;
+  const conflictInput = {
+    id: initial?.id,
+    start_at: startDate,
+    end_at: endDate,
+    speaker_id: speakerId,
+    venue: venue.trim() || undefined,
+    branch_id: branchId || null,
+  };
+  const conflicts = trpc.event.conflicts.useQuery(conflictInput, {
+    enabled: open && validRange && Boolean(speakerId),
+    retry: false,
+  });
 
   // Speaker creation inline
   const [showNewSpeaker, setShowNewSpeaker] = useState(false);
@@ -160,6 +179,7 @@ export function EventFormModal({
       setType(initial.type);
       setDescription(initial.description ?? "");
       setStart(toLocalInput(initial.start_at));
+      setEnd(toLocalInput(initial.end_at));
       setBranchId(initial.branch_id ?? "");
       setSpeakerId(initial.speaker_id);
       setFormat(onlineHybridToFormat(initial.is_online, initial.is_hybrid));
@@ -176,6 +196,7 @@ export function EventFormModal({
       const now = new Date();
       now.setMinutes(0, 0, 0);
       setStart(toLocalInput(now));
+      setEnd(toLocalInput(new Date(now.getTime() + 2 * 60 * 60 * 1000)));
       setBranchId(defaultBranchId ?? "");
       setSpeakerId("");
       setFormat("OFFLINE");
@@ -205,6 +226,11 @@ export function EventFormModal({
       return;
     }
 
+    if (!validRange) {
+      setError("Время окончания должно быть позже времени начала");
+      return;
+    }
+
     const startDate = fromLocalInput(start);
     const tags = tagsRaw
       .split(",")
@@ -221,6 +247,7 @@ export function EventFormModal({
       description: description.trim() || undefined,
       type,
       start_at: startDate,
+      end_at: endDate,
       speaker_id: speakerId,
       branch_id: branchValue,
       is_online,
@@ -233,10 +260,31 @@ export function EventFormModal({
       tags,
     };
 
-    if (isEdit && initial) {
-      await update.mutateAsync({ id: initial.id, ...common });
-    } else {
-      await create.mutateAsync(common);
+    setCheckingConflicts(true);
+    try {
+      const currentConflicts = await utils.event.conflicts.fetch(conflictInput, { staleTime: 0 });
+      if (
+        currentConflicts.length > 0 &&
+        !window.confirm(
+          `Есть пересечения: ${currentConflicts.map((event) => event.title).join(", ")}. Сохранить всё равно?`,
+        )
+      )
+        return;
+    } catch {
+      setError("Не удалось проверить пересечения. Проверьте соединение и повторите сохранение.");
+      return;
+    } finally {
+      setCheckingConflicts(false);
+    }
+
+    try {
+      if (isEdit && initial) {
+        await update.mutateAsync({ id: initial.id, ...common });
+      } else {
+        await create.mutateAsync(common);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось сохранить событие");
     }
   };
 
@@ -247,7 +295,11 @@ export function EventFormModal({
   };
 
   const isPending =
-    create.isLoading || update.isLoading || remove.isLoading || createSpeaker.isLoading;
+    checkingConflicts ||
+    create.isLoading ||
+    update.isLoading ||
+    remove.isLoading ||
+    createSpeaker.isLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -334,6 +386,15 @@ export function EventFormModal({
                 type="datetime-local"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
+                required
+              />
+            </Field>
+
+            <Field label="Окончание">
+              <Input
+                type="datetime-local"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
                 required
               />
             </Field>
@@ -445,6 +506,57 @@ export function EventFormModal({
               />
             </Field>
           </div>
+
+          {Number.isFinite(startDate.getTime()) && (
+            <div className="space-y-2">
+              <p className="text-sm text-foreground/70">
+                Выбранная дата:{" "}
+                {startDate.toLocaleDateString("ru-RU", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+              <div aria-label="Неделя выбранного мероприятия" className="grid grid-cols-7 gap-1">
+                {getWeekDays(startOfWeekMonday(startDate)).map((day, index) => {
+                  const selected = day.toDateString() === startDate.toDateString();
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      aria-current={selected ? "date" : undefined}
+                      className={`rounded-md py-2 text-center text-xs ${selected ? "bg-brand-accent font-semibold text-brand-primary" : index >= 5 ? "bg-brand-warm text-foreground" : "bg-background text-foreground/70"}`}
+                    >
+                      <span className="block">
+                        {day.toLocaleDateString("ru-RU", { weekday: "short" })}
+                      </span>
+                      <span className="mt-1 block">{day.getDate()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {validRange && (conflicts.data?.length ?? 0) > 0 && (
+            <div
+              role="status"
+              className="rounded-lg border border-brand-accent/40 bg-brand-warm p-3 text-sm"
+            >
+              <p className="font-semibold">Есть пересечения по времени:</p>
+              <ul className="mt-2 space-y-2">
+                {conflicts.data?.map((event) => (
+                  <li key={event.id}>
+                    {event.title} —{" "}
+                    {event.reasons
+                      .map((reason) => (reason === "SPEAKER" ? "спикер" : "площадка"))
+                      .join(", ")}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2">Можно сохранить после подтверждения.</p>
+            </div>
+          )}
 
           <Field label="Заметка о цене (early bird, минимум для доната)">
             <Input

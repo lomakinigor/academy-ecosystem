@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -21,14 +21,23 @@ import { EventFormModal, type EventFormInitial } from "@/app/admin/calendar/even
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-afterEach(() => {
+beforeEach(() => {
   mockFetch.mockReset();
 });
 
-const trpcResponse = (data: unknown) =>
-  new Response(JSON.stringify([{ result: { data: { json: data } } }]), {
-    status: 200,
-    headers: { "content-type": "application/json" },
+const trpcResponse = (data: unknown, count = 1) =>
+  new Response(
+    JSON.stringify(Array.from({ length: count }, () => ({ result: { data: { json: data } } }))),
+    {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    },
+  );
+
+const mockEmptyQueries = () =>
+  mockFetch.mockImplementation((url: string) => {
+    const count = String(url).split("?")[0]!.split("/").pop()!.split(",").length;
+    return Promise.resolve(trpcResponse([], count));
   });
 
 const trpcError = (message: string) =>
@@ -72,7 +81,7 @@ const initialEvent: EventFormInitial = {
 
 describe("EventFormModal — режимы создания и редактирования", () => {
   it("при создании заголовок «Новое событие»", () => {
-    mockFetch.mockResolvedValue(trpcResponse([]));
+    mockEmptyQueries();
     render(
       <TRPCProvider>
         <EventFormModal
@@ -89,7 +98,7 @@ describe("EventFormModal — режимы создания и редактиро
   });
 
   it("при редактировании предзаполняет поля и показывает «Удалить»", async () => {
-    mockFetch.mockResolvedValue(trpcResponse([]));
+    mockEmptyQueries();
     render(
       <TRPCProvider>
         <EventFormModal
@@ -110,7 +119,7 @@ describe("EventFormModal — режимы создания и редактиро
   });
 
   it("валидирует минимальную длину заголовка (3 символа)", async () => {
-    mockFetch.mockResolvedValue(trpcResponse([]));
+    mockEmptyQueries();
     const user = userEvent.setup();
     render(
       <TRPCProvider>
@@ -135,7 +144,7 @@ describe("EventFormModal — режимы создания и редактиро
   });
 
   it("показывает «Все филиалы» только если canEditNullBranch=true", () => {
-    mockFetch.mockResolvedValue(trpcResponse([]));
+    mockEmptyQueries();
     const { rerender } = render(
       <TRPCProvider>
         <EventFormModal
