@@ -5,6 +5,11 @@ vi.mock("@/auth", () => ({
   signIn: vi.fn(),
 }));
 
+// Проверяем маршрутизацию после signIn, а не подключение Prisma к production.
+vi.mock("@/auth/user-repository", () => ({
+  defaultUserRepository: { findByEmail: vi.fn(async () => ({ system_role: "STUDENT" })) },
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
@@ -34,20 +39,14 @@ beforeEach(() => {
 
 describe("loginAction — Zod validation", () => {
   it("rejects an invalid email format", async () => {
-    const result = await loginAction(
-      {},
-      form({ email: "not-an-email", password: "validpass1" }),
-    );
+    const result = await loginAction({}, form({ email: "not-an-email", password: "validpass1" }));
     expect(result.fieldErrors?.email).toBeTruthy();
     expect(result.error).toBe("Проверьте введённые данные");
     expect(signInMock).not.toHaveBeenCalled();
   });
 
   it("rejects a password shorter than 8 characters", async () => {
-    const result = await loginAction(
-      {},
-      form({ email: "user@academy.ru", password: "short" }),
-    );
+    const result = await loginAction({}, form({ email: "user@academy.ru", password: "short" }));
     expect(result.fieldErrors?.password).toBeTruthy();
     expect(signInMock).not.toHaveBeenCalled();
   });
@@ -107,10 +106,7 @@ describe("loginAction — sign-in flow", () => {
   it("invokes signIn with credentials provider and redirect:false", async () => {
     signInMock.mockResolvedValueOnce(undefined as never);
     try {
-      await loginAction(
-        {},
-        form({ email: "user@academy.ru", password: "validpass1" }),
-      );
+      await loginAction({}, form({ email: "user@academy.ru", password: "validpass1" }));
     } catch {
       /* swallow the mocked redirect */
     }
