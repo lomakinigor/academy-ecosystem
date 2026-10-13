@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
+import { useState } from "react";
 
 import { Button, Input } from "@academy/ui";
 
@@ -26,6 +27,7 @@ function SubmitButton() {
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction] = useFormState(loginAction, initialState);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} noValidate className="flex flex-col gap-5">
@@ -57,11 +59,22 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
         <Input
           id="password"
           name="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           required
           autoComplete="current-password"
           aria-invalid={Boolean(state.fieldErrors?.password)}
         />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-end"
+          aria-controls="password"
+          aria-pressed={showPassword}
+          onClick={() => setShowPassword((shown) => !shown)}
+        >
+          {showPassword ? "Скрыть пароль" : "Показать пароль"}
+        </Button>
         {state.fieldErrors?.password ? (
           <p role="alert" className="text-xs text-destructive">
             {state.fieldErrors.password}
