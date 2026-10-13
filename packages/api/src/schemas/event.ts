@@ -18,6 +18,9 @@ export const eventStatusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "COMPLETE
 
 export const pricingTypeSchema = z.enum(["FIXED", "DONATION", "FREE"]);
 
+export const isDateOnlyRange = (start: Date, end: Date | undefined) =>
+  Boolean(end && end > start && start.getTime() % 86400000 === 0 && end.getTime() % 86400000 === 0);
+
 export const eventCreateSchema = z
   .object({
     title: z.string().min(3, "Минимум 3 символа").max(200),
@@ -27,6 +30,7 @@ export const eventCreateSchema = z
     start_at: z.coerce.date(),
     // end_at опционален — если не передан, роутер ставит start_at + 2 часа
     end_at: z.coerce.date().optional(),
+    is_all_day: z.boolean().default(false),
     speaker_id: cuidSchema,
     branch_id: cuidSchema.nullable().optional(),
     max_participants: z.number().int().positive().optional(),
@@ -42,6 +46,10 @@ export const eventCreateSchema = z
   })
   .refine((event) => !event.end_at || event.end_at > event.start_at, {
     message: "Время окончания должно быть позже времени начала",
+    path: ["end_at"],
+  })
+  .refine((event) => !event.is_all_day || isDateOnlyRange(event.start_at, event.end_at), {
+    message: "Для мероприятия без времени укажите корректный диапазон календарных дат",
     path: ["end_at"],
   });
 
@@ -119,6 +127,7 @@ export const eventUpdateSchema = z.object({
   status: eventStatusSchema.optional(),
   start_at: z.coerce.date().optional(),
   end_at: z.coerce.date().optional(),
+  is_all_day: z.boolean().optional(),
   speaker_id: cuidSchema.optional(),
   branch_id: cuidSchema.nullable().optional(),
   max_participants: z.number().int().positive().nullable().optional(),

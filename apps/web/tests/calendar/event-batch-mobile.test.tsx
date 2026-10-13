@@ -61,6 +61,48 @@ async function review() {
 }
 
 describe("Мобильная проверка пакетного ввода", () => {
+  it("проверяет и сохраняет многодневный диапазон без часов одной записью", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          events: [
+            {
+              title: "Путь Велеса",
+              type: "SEMINAR",
+              date: "2026-10-15",
+              end_date: "2026-10-17",
+              is_all_day: true,
+              start_time: "",
+              end_time: "",
+              speaker_id: "speaker1",
+              venue: "На поселении",
+              branch_id: null,
+              pricing_type: "FIXED",
+              price: 70000,
+              pricing_note: "50000 ₽ для предмастеров; 70000 ₽ для остальных",
+              tags: [],
+              is_online: false,
+            },
+          ],
+        }),
+      }),
+    );
+    await review();
+    expect(screen.getByLabelText("Дата окончания мероприятия 1")).toHaveValue("2026-10-17");
+    expect(screen.queryByLabelText("Начало мероприятия 1")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Создать 1 событие" }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_all_day: true,
+        venue: "На поселении",
+        start_at: new Date("2026-10-15T00:00Z"),
+        end_at: new Date("2026-10-18T00:00Z"),
+      }),
+    );
+  });
   it("даёт каждому мероприятию подписанные поля и вертикальную карточку", async () => {
     await review();
     const title = screen.getByRole("textbox", { name: "Название мероприятия 1" });

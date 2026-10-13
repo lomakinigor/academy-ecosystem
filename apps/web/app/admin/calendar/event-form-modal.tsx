@@ -23,6 +23,7 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
 import { getWeekDays, startOfWeekMonday } from "./weekly-calendar";
+import { dateOnlyStart, dateOnlyEnd, lastEventDate } from "@/lib/events/dates";
 
 type PricingType = "FIXED" | "DONATION" | "FREE";
 type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -54,6 +55,7 @@ export interface EventFormInitial {
   status: EventStatus;
   start_at: Date;
   end_at: Date;
+  is_all_day?: boolean;
   branch_id: string | null;
   speaker_id: string;
   is_online: boolean;
@@ -138,6 +140,7 @@ export function EventFormModal({
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [allDay, setAllDay] = useState(false);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [branchId, setBranchId] = useState<string>("");
   const [speakerId, setSpeakerId] = useState("");
@@ -149,8 +152,9 @@ export function EventFormModal({
   const [maxParticipants, setMaxParticipants] = useState<string>("");
   const [tagsRaw, setTagsRaw] = useState("");
 
-  const startDate = fromLocalInput(start);
-  const endDate = fromLocalInput(end);
+  const startDate = allDay ? dateOnlyStart(start) : fromLocalInput(start);
+  const endDate = allDay ? dateOnlyEnd(end) : fromLocalInput(end);
+  const calendarDate = allDay ? new Date(`${start.slice(0, 10)}T12:00`) : startDate;
   const validRange = Number.isFinite(startDate.getTime()) && endDate > startDate;
   const conflictInput = {
     id: initial?.id,
@@ -178,8 +182,17 @@ export function EventFormModal({
       setTitle(initial.title);
       setType(initial.type);
       setDescription(initial.description ?? "");
-      setStart(toLocalInput(initial.start_at));
-      setEnd(toLocalInput(initial.end_at));
+      setAllDay(initial.is_all_day ?? false);
+      setStart(
+        initial.is_all_day
+          ? `${initial.start_at.toISOString().slice(0, 10)}T00:00`
+          : toLocalInput(initial.start_at),
+      );
+      setEnd(
+        initial.is_all_day
+          ? `${lastEventDate(initial.end_at)}T00:00`
+          : toLocalInput(initial.end_at),
+      );
       setBranchId(initial.branch_id ?? "");
       setSpeakerId(initial.speaker_id);
       setFormat(onlineHybridToFormat(initial.is_online, initial.is_hybrid));
@@ -191,6 +204,7 @@ export function EventFormModal({
       setTagsRaw(initial.tags.join(", "));
     } else {
       setTitle("");
+      setAllDay(false);
       setType("LESSON");
       setDescription("");
       const now = new Date();
@@ -231,7 +245,6 @@ export function EventFormModal({
       return;
     }
 
-    const startDate = fromLocalInput(start);
     const tags = tagsRaw
       .split(",")
       .map((t) => t.trim())
@@ -248,6 +261,7 @@ export function EventFormModal({
       type,
       start_at: startDate,
       end_at: endDate,
+      is_all_day: allDay,
       speaker_id: speakerId,
       branch_id: branchValue,
       is_online,
@@ -383,20 +397,34 @@ export function EventFormModal({
               </Field>
             )}
 
+            <label className="flex min-h-11 items-center gap-2 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={allDay}
+                onChange={(e) => setAllDay(e.target.checked)}
+                className="size-4 accent-brand-accent"
+              />
+              Без указания времени
+            </label>
+            {allDay && (
+              <p className="text-xs text-foreground/60 sm:col-span-2">
+                Укажите первую и последнюю дату включительно. Часы проведения не задаются.
+              </p>
+            )}
             <Field label="Начало">
               <Input
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
+                type={allDay ? "date" : "datetime-local"}
+                value={allDay ? start.slice(0, 10) : start}
+                onChange={(e) => setStart(allDay ? `${e.target.value}T00:00` : e.target.value)}
                 required
               />
             </Field>
 
             <Field label="Окончание">
               <Input
-                type="datetime-local"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
+                type={allDay ? "date" : "datetime-local"}
+                value={allDay ? end.slice(0, 10) : end}
+                onChange={(e) => setEnd(allDay ? `${e.target.value}T00:00` : e.target.value)}
                 required
               />
             </Field>
@@ -513,7 +541,7 @@ export function EventFormModal({
             <div className="space-y-2">
               <p className="text-sm text-foreground/70">
                 Выбранная дата:{" "}
-                {startDate.toLocaleDateString("ru-RU", {
+                {calendarDate.toLocaleDateString("ru-RU", {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -521,8 +549,8 @@ export function EventFormModal({
                 })}
               </p>
               <div aria-label="Неделя выбранного мероприятия" className="grid grid-cols-7 gap-1">
-                {getWeekDays(startOfWeekMonday(startDate)).map((day, index) => {
-                  const selected = day.toDateString() === startDate.toDateString();
+                {getWeekDays(startOfWeekMonday(calendarDate)).map((day, index) => {
+                  const selected = day.toDateString() === calendarDate.toDateString();
                   return (
                     <div
                       key={day.toISOString()}

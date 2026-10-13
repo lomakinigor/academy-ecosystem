@@ -153,9 +153,8 @@ describe("buildEventListWhere — пользовательские фильтр�
 
   it("from/to всегда применяются", () => {
     const where = buildEventListWhere(range, global);
-    const dateClauses = (where.AND as Array<Record<string, unknown>>).filter(
-      (c) => "start_at" in c,
+    expect(where.AND).toEqual(
+      expect.arrayContaining([{ end_at: { gt: range.from } }, { start_at: { lte: range.to } }]),
     );
-    expect(dateClauses).toHaveLength(2);
   });
 });

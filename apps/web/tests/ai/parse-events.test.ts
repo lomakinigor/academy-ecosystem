@@ -18,6 +18,53 @@ beforeEach(() => {
 });
 
 describe("Пакетное распознавание: бюджет ответа", () => {
+  it("сохраняет три дня, место и две цены без выдуманных часов", async () => {
+    mock.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                tool_calls: [
+                  {
+                    function: {
+                      name: "create_events",
+                      arguments: JSON.stringify({
+                        events: [
+                          {
+                            title: "Путь Велеса",
+                            date: "2026-10-15",
+                            end_date: "2026-10-17",
+                            is_all_day: true,
+                            start_time: null,
+                            end_time: null,
+                            venue: "На поселении",
+                            pricing_type: "FIXED",
+                            price: 70000,
+                            pricing_note: "50000 ₽ для группы предмастеров, 70000 ₽ для остальных",
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const data = await (await POST(request())).json();
+    expect(data.events).toHaveLength(1);
+    expect(data.events[0]).toMatchObject({
+      end_date: "2026-10-17",
+      is_all_day: true,
+      start_time: "",
+      end_time: "",
+      venue: "На поселении",
+    });
+    expect(data.events[0].pricing_note).toContain("50000");
+  });
   it("ограничивает ответ 8192 токенами, сохраняя разбор tool_call", async () => {
     mock.fetch.mockResolvedValue(
       new Response(

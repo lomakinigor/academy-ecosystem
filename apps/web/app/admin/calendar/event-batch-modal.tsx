@@ -23,6 +23,7 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import type { ParsedEvent } from "@/app/api/ai/parse-events/route";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
+import { dateOnlyStart, dateOnlyEnd } from "@/lib/events/dates";
 
 interface BranchOption {
   id: string;
@@ -139,6 +140,8 @@ export function EventBatchModal({
           }
           return {
             ...e,
+            end_date: e.end_date ?? e.date,
+            is_all_day: e.is_all_day ?? false,
             branch_id: branches.length === 0 ? null : (e.branch_id ?? defaultBranchId),
             include: true,
             is_hybrid: false,
@@ -166,6 +169,20 @@ export function EventBatchModal({
 
     if (missingSpeaker) {
       setCreateError("Выберите спикера для всех отмеченных событий");
+      return;
+    }
+
+    const invalidRange = selected.some((ev) => {
+      const start = ev.is_all_day
+        ? dateOnlyStart(ev.date)
+        : new Date(toDatetimeLocal(ev.date, ev.start_time));
+      const end = ev.is_all_day
+        ? dateOnlyEnd(ev.end_date ?? ev.date)
+        : new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time));
+      return !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start;
+    });
+    if (invalidRange) {
+      setCreateError("Проверьте даты и время начала и окончания выбранных мероприятий");
       return;
     }
 
@@ -197,7 +214,14 @@ export function EventBatchModal({
           description: ev.description ?? undefined,
           type: ev.type as EventTypeValue,
           status: "PLANNED",
-          start_at: new Date(toDatetimeLocal(ev.date, ev.start_time)),
+          start_at: ev.is_all_day
+            ? dateOnlyStart(ev.date)
+            : new Date(toDatetimeLocal(ev.date, ev.start_time)),
+          end_at: ev.is_all_day
+            ? dateOnlyEnd(ev.end_date ?? ev.date)
+            : new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time)),
+          is_all_day: ev.is_all_day ?? false,
+          venue: ev.venue ?? undefined,
           speaker_id: speakerId,
           branch_id: ev.branch_id,
           is_online: ev.is_online,
@@ -310,7 +334,7 @@ export function EventBatchModal({
                     <th className="py-2 pr-3">✓</th>
                     <th className="py-2 pr-3">Название</th>
                     <th className="py-2 pr-3">Тип</th>
-                    <th className="py-2 pr-3">Дата и начало</th>
+                    <th className="py-2 pr-3">Даты и время</th>
                     <th className="py-2 pr-3">Спикер</th>
                     {branches.length > 0 && <th className="py-2 pr-3">Филиал</th>}
                     <th className="py-2 pr-3">Формат</th>
@@ -373,9 +397,10 @@ export function EventBatchModal({
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap">
                           <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
-                            Дата и начало
+                            Даты и время
                           </span>
                           <div className="flex flex-col gap-1">
+                            <span className="text-xs text-foreground/60">Начало</span>
                             <Input
                               type="date"
                               aria-label={`Дата мероприятия ${i + 1}`}
@@ -383,13 +408,42 @@ export function EventBatchModal({
                               onChange={(e) => updateRow(i, { date: e.target.value })}
                               className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[130px] sm:text-xs"
                             />
+                            <span className="text-xs text-foreground/60">
+                              Окончание (дата включительно)
+                            </span>
                             <Input
-                              type="time"
-                              aria-label={`Начало мероприятия ${i + 1}`}
-                              value={row.start_time}
-                              onChange={(e) => updateRow(i, { start_time: e.target.value })}
-                              className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[100px] sm:text-xs"
+                              type="date"
+                              aria-label={`Дата окончания мероприятия ${i + 1}`}
+                              value={row.end_date ?? row.date}
+                              onChange={(e) => updateRow(i, { end_date: e.target.value })}
+                              className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[130px] sm:text-xs"
                             />
+                            <label className="flex min-h-11 items-center gap-2 whitespace-normal text-xs">
+                              <input
+                                type="checkbox"
+                                checked={row.is_all_day ?? false}
+                                onChange={(e) => updateRow(i, { is_all_day: e.target.checked })}
+                              />
+                              Без указания времени
+                            </label>
+                            {!row.is_all_day && (
+                              <>
+                                <Input
+                                  type="time"
+                                  aria-label={`Начало мероприятия ${i + 1}`}
+                                  value={row.start_time}
+                                  onChange={(e) => updateRow(i, { start_time: e.target.value })}
+                                  className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[100px] sm:text-xs"
+                                />
+                                <Input
+                                  type="time"
+                                  aria-label={`Окончание мероприятия ${i + 1}`}
+                                  value={row.end_time}
+                                  onChange={(e) => updateRow(i, { end_time: e.target.value })}
+                                  className="h-11 w-full min-w-0 text-sm sm:h-8 sm:w-[100px] sm:text-xs"
+                                />
+                              </>
+                            )}
                           </div>
                         </td>
 
@@ -546,6 +600,9 @@ export function EventBatchModal({
                               : row.price != null
                                 ? `${new Intl.NumberFormat("ru-RU").format(row.price)} ₽`
                                 : "—"}
+                          {row.pricing_note && (
+                            <p className="mt-1 whitespace-normal">{row.pricing_note}</p>
+                          )}
                         </td>
                       </tr>
                     );

@@ -24,6 +24,48 @@ const event = (id: string, hour: number): EventCardData => ({
 });
 
 describe("Недельный календарь на телефоне", () => {
+  it("показывает продолжающееся мероприятие на следующей неделе", () => {
+    render(
+      <WeeklyCalendar
+        events={[
+          {
+            ...event("nextweek", 10),
+            is_all_day: true,
+            start_at: new Date("2026-10-17T00:00Z"),
+            end_at: new Date("2026-10-21T00:00Z"),
+          },
+        ]}
+        weekStart={new Date(2026, 9, 19)}
+        onPreviousWeek={vi.fn()}
+        onNextWeek={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText("Длинное название мероприятия nextweek")).toHaveLength(2);
+  });
+  it("показывает один семинар без часов во всех трёх днях, не включая 18-е", () => {
+    render(
+      <WeeklyCalendar
+        events={[
+          {
+            ...event("retreat", 10),
+            start_at: new Date("2026-10-15T00:00Z"),
+            end_at: new Date("2026-10-18T00:00Z"),
+            ...{ is_all_day: true },
+          },
+        ]}
+        weekStart={new Date(2026, 9, 12)}
+        onPreviousWeek={vi.fn()}
+        onNextWeek={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText("Длинное название мероприятия retreat")).toHaveLength(3);
+    expect(screen.getAllByText("Без указания времени")).toHaveLength(3);
+    expect(
+      within(screen.getByRole("region", { name: /воскресенье, 18 октября/i })).queryByRole(
+        "button",
+      ),
+    ).toBeNull();
+  });
   it("показывает все мероприятия дня без обрезки и фиксированной ширины", () => {
     render(
       <WeeklyCalendar

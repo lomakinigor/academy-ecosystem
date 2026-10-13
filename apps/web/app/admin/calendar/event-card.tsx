@@ -6,6 +6,7 @@ import { Globe2, MapPin, User2, Users } from "lucide-react";
 import { Badge, Card, CardContent } from "@academy/ui";
 
 import { EVENT_TYPE_LABELS, type EventTypeValue } from "./filters";
+import { dateOnlyLabel } from "@/lib/events/dates";
 
 export interface EventCardData {
   id: string;
@@ -15,6 +16,9 @@ export interface EventCardData {
   status: "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
   start_at: Date;
   end_at: Date;
+  is_all_day?: boolean;
+  venue?: string | null;
+  is_hybrid?: boolean;
   is_online: boolean;
   pricing_type: "FIXED" | "DONATION" | "FREE";
   price: number | null;
@@ -71,8 +75,10 @@ const formatPrice = (e: EventCardData): string => {
 };
 
 export function EventCard({ event, onClick, href }: EventCardProps) {
-  const dayNum = event.start_at.getDate();
-  const monthLabel = monthShort(event.start_at);
+  const dayNum = event.is_all_day ? event.start_at.getUTCDate() : event.start_at.getDate();
+  const monthLabel = event.is_all_day
+    ? event.start_at.toLocaleDateString("ru-RU", { month: "short", timeZone: "UTC" }).toUpperCase()
+    : monthShort(event.start_at);
   const startTime = formatTime(event.start_at);
   const endTime = formatTime(event.end_at);
   const capacityPct =
@@ -103,7 +109,9 @@ export function EventCard({ event, onClick, href }: EventCardProps) {
         <span className="mt-1 font-heading text-[10px] font-semibold tracking-wider text-foreground/70">
           {monthLabel}
         </span>
-        <span className="mt-2 text-[11px] text-foreground/60">{startTime}</span>
+        {!event.is_all_day && (
+          <span className="mt-2 text-[11px] text-foreground/60">{startTime}</span>
+        )}
       </div>
 
       {/* Body */}
@@ -126,6 +134,11 @@ export function EventCard({ event, onClick, href }: EventCardProps) {
         <h3 className="mt-2 font-heading text-lg font-semibold text-brand-primary">
           {event.title}
         </h3>
+        {event.is_all_day && (
+          <p className="mt-1 text-sm text-foreground/70">
+            {dateOnlyLabel(event.start_at, event.end_at)} · Без указания времени
+          </p>
+        )}
 
         {event.description && (
           <p className="mt-1 line-clamp-2 text-sm text-foreground/70">{event.description}</p>
@@ -138,13 +151,11 @@ export function EventCard({ event, onClick, href }: EventCardProps) {
           </div>
           <div className="flex items-center gap-2 text-foreground/80">
             <MapPin className="size-4 text-foreground/50" aria-hidden />
-            <span>{event.branch ? event.branch.city : "Все филиалы"}</span>
+            <span>{event.venue ?? (event.branch ? event.branch.city : "Все филиалы")}</span>
           </div>
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="text-xs text-foreground/50">Время</span>
-            <span>
-              {startTime}–{endTime}
-            </span>
+            <span>{event.is_all_day ? "Без указания времени" : `${startTime}–${endTime}`}</span>
           </div>
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="text-xs text-foreground/50">Стоимость</span>

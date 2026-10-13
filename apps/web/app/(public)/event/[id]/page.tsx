@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 
 import { getCurrentUser } from "@/lib/auth/helpers";
 import { getServerCaller } from "@/lib/trpc/server";
+import { dateOnlyLabel } from "@/lib/events/dates";
 
 import { EVENT_TYPE_LABELS, type EventTypeValue } from "../../../admin/calendar/filters";
 
@@ -109,13 +110,19 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
               <Calendar className="size-4 text-foreground/50" aria-hidden />
               <div>
                 <div className="text-xs uppercase tracking-wider text-foreground/50">Дата</div>
-                <div className="font-medium text-brand-primary">{formatDate(event.start_at)}</div>
+                <div className="font-medium text-brand-primary">
+                  {event.is_all_day
+                    ? dateOnlyLabel(event.start_at, event.end_at)
+                    : formatDate(event.start_at)}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Время</span>
               <span className="font-medium text-brand-primary">
-                {formatTime(event.start_at)}–{formatTime(event.end_at)}
+                {event.is_all_day
+                  ? "Без указания времени"
+                  : `${formatTime(event.start_at)}–${formatTime(event.end_at)}`}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -130,7 +137,8 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
               <div>
                 <div className="text-xs uppercase tracking-wider text-foreground/50">Место</div>
                 <div className="font-medium text-brand-primary">
-                  {event.branch ? `${event.branch.city} · ${event.branch.name}` : "Все филиалы"}
+                  {event.venue ??
+                    (event.branch ? `${event.branch.city} · ${event.branch.name}` : "Все филиалы")}
                 </div>
               </div>
             </div>

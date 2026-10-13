@@ -14,6 +14,9 @@ export type ParsedEvent = {
   description: string | null;
   type: string;
   date: string; // YYYY-MM-DD
+  end_date?: string; // inclusive YYYY-MM-DD
+  is_all_day?: boolean;
+  venue?: string | null;
   start_time: string; // HH:MM
   end_time: string; // HH:MM
   speaker_name: string | null;
@@ -81,12 +84,24 @@ const eventToolSchema = {
           type: "array",
           items: {
             type: "object",
-            required: ["title", "type", "date", "start_time", "end_time"],
+            required: ["title", "type", "date", "end_date", "is_all_day"],
             properties: {
               title: { type: "string", description: "Название события" },
               description: { type: "string", description: "Описание события или null" },
               type: { type: "string", enum: EVENT_TYPES, description: "Тип события" },
               date: { type: "string", description: "Дата в формате YYYY-MM-DD" },
+              end_date: {
+                type: "string",
+                description: "Последняя дата включительно YYYY-MM-DD. Для одного дня равна date",
+              },
+              is_all_day: {
+                type: "boolean",
+                description: "true, если часы не указаны или мероприятие без точного времени",
+              },
+              venue: {
+                type: "string",
+                description: "Место/адрес как в тексте, например На поселении",
+              },
               start_time: { type: "string", description: "Время начала HH:MM" },
               end_time: { type: "string", description: "Время окончания HH:MM" },
               speaker_name: {
@@ -145,7 +160,9 @@ export async function POST(req: Request) {
 Список городов/филиалов: ${branches.map((b) => b.city).join(", ") || "не задан"}.
 Тип события — одно из: ${EVENT_TYPES.join(", ")}.
 Для определения типа: семинар→SEMINAR, практика→PRACTICE, вебинар→WEBINAR, курс→COURSE, ретрит/ритрит→RETREAT, путешествие/поездка→TRIP, мастер-класс→MASTERCLASS, занятие/урок→LESSON, репетиция→REHEARSAL.
-Если год не указан — используй текущий год. Если время не указано — ставь 10:00–13:00.
+Если год не указан — используй текущий год. Если часы не указаны, is_all_day=true, start_time/end_time не заполняй: НЕ выдумывай время.
+Диапазон дат (например с 15-17.10.26) — ОДНО мероприятие: date=2026-10-15, end_date=2026-10-17 включительно. Пустые заголовки следующих дней и пустые маркеры не создают отдельные мероприятия.
+Сохраняй место проведения в venue, например «На поселении». Разные цены для разных групп полностью сохрани в pricing_note; не теряй условия участия и цены в description.
 Если несколько событий в тексте — вернуть массив. Разделители событий: пустая строка, нумерация, маркеры "-".`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -207,13 +224,17 @@ export async function POST(req: Request) {
     const e = ev as Record<string, unknown>;
     const speakerName = (e.speaker_name as string | null) ?? null;
     const branchCity = (e.branch_city as string | null) ?? null;
+    const isAllDay = e.is_all_day === true || !e.start_time;
     return {
       title: String(e.title ?? ""),
       description: (e.description as string | null) ?? null,
       type: String(e.type ?? "SEMINAR"),
       date: String(e.date ?? today),
-      start_time: String(e.start_time ?? "10:00"),
-      end_time: String(e.end_time ?? "13:00"),
+      end_date: String(e.end_date ?? e.date ?? today),
+      is_all_day: isAllDay,
+      venue: (e.venue as string | null) ?? null,
+      start_time: isAllDay ? "" : String(e.start_time ?? ""),
+      end_time: isAllDay ? "" : String(e.end_time ?? ""),
       speaker_name: speakerName,
       speaker_id: matchSpeaker(speakerName, speakers),
       branch_city: branchCity,

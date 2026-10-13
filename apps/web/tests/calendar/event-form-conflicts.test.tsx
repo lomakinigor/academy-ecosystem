@@ -70,6 +70,26 @@ beforeEach(() => {
 });
 
 describe("Форма: время и подтверждение пересечений", () => {
+  it("редактирует даты без времени, не сдвигая включённый последний день", async () => {
+    showForm({
+      ...initial,
+      ...{ is_all_day: true },
+      start_at: new Date("2026-10-15T00:00Z"),
+      end_at: new Date("2026-10-18T00:00Z"),
+    });
+    expect(screen.getByLabelText("Без указания времени")).toBeChecked();
+    expect(screen.getByLabelText("Начало")).toHaveValue("2026-10-15");
+    expect(screen.getByLabelText("Окончание")).toHaveValue("2026-10-17");
+    await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() =>
+      expect(api.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          is_all_day: true,
+          end_at: new Date("2026-10-18T00:00Z"),
+        }),
+      ),
+    );
+  });
   it("в общей админке не предлагает выбор филиала", () => {
     showForm();
     expect(screen.queryByText("Филиал")).not.toBeInTheDocument();

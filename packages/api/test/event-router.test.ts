@@ -133,8 +133,9 @@ describe("eventRouter.list — фильтры в where", () => {
 
   it("фильтр по диапазону дат всегда включён", async () => {
     const where = await callWith({});
-    const dateClauses = where.AND.filter((c) => "start_at" in c);
-    expect(dateClauses).toHaveLength(2);
+    expect(where.AND).toEqual(
+      expect.arrayContaining([{ end_at: { gt: range.from } }, { start_at: { lte: range.to } }]),
+    );
   });
 
   it("фильтр по типам", async () => {

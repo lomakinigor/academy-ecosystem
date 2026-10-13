@@ -46,8 +46,15 @@ export function WeeklyCalendar({
   const todayKey = dayKey(new Date());
   const eventsByDay = new Map<string, EventCardData[]>();
   for (const event of events) {
-    const key = dayKey(event.start_at);
-    eventsByDay.set(key, [...(eventsByDay.get(key) ?? []), event]);
+    for (const day of days) {
+      const start = event.is_all_day ? new Date(`${dayKey(day)}T00:00:00Z`) : new Date(day);
+      if (!event.is_all_day) start.setHours(0, 0, 0, 0);
+      const next = event.is_all_day ? new Date(start.getTime() + 86400000) : addDays(start, 1);
+      if (event.start_at < next && event.end_at > start) {
+        const key = dayKey(day);
+        eventsByDay.set(key, [...(eventsByDay.get(key) ?? []), event]);
+      }
+    }
   }
 
   const rangeLabel = `${days[0]?.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} — ${days[6]?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}`;
@@ -125,7 +132,9 @@ export function WeeklyCalendar({
                       className="min-h-11 w-full rounded-lg border border-brand-accent/30 bg-brand-warm p-3 text-left text-sm transition-colors hover:bg-brand-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent lg:p-2 lg:text-xs"
                     >
                       <span className="block font-semibold text-brand-primary">
-                        {formatTime(event.start_at)} — {formatTime(event.end_at)}
+                        {event.is_all_day
+                          ? "Без указания времени"
+                          : `${formatTime(event.start_at)} — ${formatTime(event.end_at)}`}
                       </span>
                       <span className="mt-1 block break-words text-foreground">{event.title}</span>
                       <span className="mt-1 block break-words text-foreground/60">

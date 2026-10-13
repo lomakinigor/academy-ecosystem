@@ -47,6 +47,8 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
           status: ev.status,
           start_at: ev.start_at,
           end_at: ev.end_at,
+          is_all_day: ev.is_all_day,
+          venue: ev.venue,
           is_online: ev.is_online,
           pricing_type: ev.pricing_type,
           price: ev.price ? Number(ev.price) : null,

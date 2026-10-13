@@ -10,6 +10,7 @@ import {
   eventPublicListInputSchema,
   eventUpdateSchema,
   type EventListInput,
+  isDateOnlyRange,
 } from "../schemas/event";
 import type { BranchScope } from "../trpc";
 import type { SessionUser } from "../context";
@@ -27,7 +28,7 @@ export const buildEventListWhere = (
 ): Prisma.EventWhereInput => {
   const and: Prisma.EventWhereInput[] = [
     {
-      start_at: { gte: input.from },
+      end_at: { gt: input.from },
     },
     {
       // Событие пересекает диапазон, если start_at <= to.
@@ -209,7 +210,7 @@ const PUBLIC_VISIBLE_STATUSES = ["PLANNED", "ACTIVE"] as const;
 export const eventRouter = router({
   publicList: publicProcedure.input(eventPublicListInputSchema).query(async ({ ctx, input }) => {
     const and: Prisma.EventWhereInput[] = [
-      { start_at: { gte: input.from } },
+      { end_at: { gt: input.from } },
       { start_at: { lte: input.to } },
       { status: { in: [...PUBLIC_VISIBLE_STATUSES] } },
     ];
@@ -366,6 +367,7 @@ export const eventRouter = router({
         status: input.status,
         start_at: input.start_at,
         end_at,
+        is_all_day: input.is_all_day,
         speaker_id: input.speaker_id,
         branch_id: branchId,
         max_participants: input.max_participants,
@@ -388,7 +390,7 @@ export const eventRouter = router({
 
     const existing = await ctx.prisma.event.findUnique({
       where: { id: input.id },
-      select: { id: true, branch_id: true, start_at: true, end_at: true },
+      select: { id: true, branch_id: true, start_at: true, end_at: true, is_all_day: true },
     });
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Событие не найдено" });
@@ -401,13 +403,23 @@ export const eventRouter = router({
       assertBranchWrite(ctx.branchScope, input.branch_id);
     }
 
-    if (input.start_at !== undefined || input.end_at !== undefined) {
+    if (
+      input.start_at !== undefined ||
+      input.end_at !== undefined ||
+      input.is_all_day !== undefined
+    ) {
       const start = input.start_at ?? existing.start_at;
       const end = input.end_at ?? existing.end_at;
       if (end <= start) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Время окончания должно быть позже времени начала",
+        });
+      }
+      if ((input.is_all_day ?? existing.is_all_day) && !isDateOnlyRange(start, end)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Для мероприятия без времени укажите корректный диапазон календарных дат",
         });
       }
     }
