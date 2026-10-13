@@ -67,5 +67,18 @@
 
 ## Telegram
 
+## Активация владельца и отдельная сборка
+
+13 октября владелец зарегистрировался и подтвердил выдачу доступа. По проверенному ID и email выполнен условный UPDATE одной записи STUDENT → BRANCH_ADMIN. Password hash и остальные поля не изменялись. OWNER_USER_ID настроен в production-окружении Vercel, без публикации ID или email в Git.
+
+- Deployment `dpl_AFQqkBorgDo5GKCrv1BXS9f3es1g` — Ready.
+- URL: https://academy-ecosystem-ox94as456-igorsibola.vercel.app
+- Сборка без db push/migration, с `--skip-domain`; основной academy-ecosystem.vercel.app не переключался.
+- Неавторизованный запрос /admin/clients/administrators перенаправляет на login с сохранённым callbackUrl. Кнопка показа пароля присутствует.
+- Полный авторизованный путь ждёт самостоятельного входа владельца; не объявляется проверенным.
+- Pre-release gate не пройден, см. ux-audit-reports/2026-10-13.md. Нельзя считать эту сборку готовым релизом всего MVP.
+
+## Telegram (без изменений)
+
 Весь Mini App отложен до завершения web-части и отдельного разрешения
 владельца. Ключи бота сейчас не запрашиваются и не используются.
