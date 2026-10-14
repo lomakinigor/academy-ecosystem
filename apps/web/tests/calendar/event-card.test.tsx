@@ -34,7 +34,7 @@ describe("EventCard", () => {
     );
 
     expect(screen.getByTestId("compact-event-card")).toBeInTheDocument();
-    expect(screen.getByText("Храм-3: день 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Храм-3: день 1" })).toBeInTheDocument();
     expect(screen.getByText(/В\.Ю\. Светлов/)).toBeInTheDocument();
     expect(screen.getByText("Подробнее")).toBeInTheDocument();
     expect(screen.getByText(/Место: На поселении/).closest("details")).not.toHaveAttribute("open");

@@ -111,6 +111,9 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
   }`;
 
   if (compact) {
+    const compactTitle =
+      event.title.replace(/^(?:(?:занятие|занятия|семинар)\s*[-—–:]?\s+)+/i, "").trim() ||
+      event.title;
     const weekday = displayDate.toLocaleDateString("ru-RU", {
       weekday: "short",
       timeZone: displayDay || event.is_all_day ? "UTC" : "Asia/Yekaterinburg",
@@ -136,7 +139,7 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="line-clamp-1 font-heading text-base font-semibold text-brand-primary">
-                {event.title}
+                {compactTitle}
               </h3>
               <p className="mt-1 truncate text-sm text-foreground/70">
                 {compactTime} · {event.speaker.name}
@@ -149,6 +152,7 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
               Подробнее
             </summary>
             <div className="mt-3 space-y-2 text-sm text-foreground/75">
+              <h4 className="font-heading font-semibold text-brand-primary">{event.title}</h4>
               {event.description && <p>{event.description}</p>}
               {event.venue && <p>Место: {event.venue}</p>}
               <p>{event.is_online ? "Онлайн" : "Очно"}</p>
