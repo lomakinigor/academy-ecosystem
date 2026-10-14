@@ -1,17 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 
-// next-auth's `auth(handler)` higher-order wrapper — replace with identity so we
-// can import middleware.ts in a Node test env without booting the full auth stack.
+// Lazy Auth.js beta config returns its wrapper asynchronously, despite the static types.
 vi.mock("@/auth", () => ({
-  auth: (handler: unknown) => handler,
+  auth: async (handler: unknown) => handler,
 }));
 
 import middleware, { config } from "@/middleware";
 
 describe("middleware module — smoke", () => {
-  it("admin-layout проверяет актуальную роль, а не отклоняется по старому JWT после назначения", () => {
-    const handler = middleware as unknown as (req: unknown) => Response;
-    const response = handler({
+  it("admin-layout проверяет актуальную роль, а не отклоняется по старому JWT после назначения", async () => {
+    const handler = middleware as unknown as (req: unknown) => Promise<Response>;
+    const response = await handler({
       nextUrl: new URL("https://example.test/admin/calendar"),
       url: "https://example.test/admin/calendar",
       auth: { user: { system_role: "STUDENT" } },
