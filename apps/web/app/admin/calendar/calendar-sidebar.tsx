@@ -7,11 +7,6 @@ import { Filter, RotateCcw } from "lucide-react";
 import {
   Button,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Sheet,
   SheetContent,
   SheetHeader,
@@ -37,18 +32,13 @@ const PERIOD_OPTIONS: Array<{ key: PeriodKey; label: string }> = [
   { key: "custom", label: "Период" },
 ];
 
-interface BranchOption {
-  id: string;
-  name: string;
-  city: string;
-}
-
 interface CalendarSidebarProps {
-  branches: BranchOption[];
+  /** Сохраняем для будущего разделения на филиалы; в MVP не отображается. */
+  branches?: Array<{ id: string; name: string; city: string }>;
   total: number;
 }
 
-export function CalendarSidebar({ branches, total }: CalendarSidebarProps) {
+export function CalendarSidebar({ total }: CalendarSidebarProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -70,7 +60,7 @@ export function CalendarSidebar({ branches, total }: CalendarSidebarProps) {
               <SheetTitle>Фильтры календаря</SheetTitle>
             </SheetHeader>
             <div className="mt-4">
-              <SidebarBody branches={branches} total={total} onApplied={() => setOpen(false)} />
+              <SidebarBody total={total} onApplied={() => setOpen(false)} />
             </div>
           </SheetContent>
         </Sheet>
@@ -79,7 +69,7 @@ export function CalendarSidebar({ branches, total }: CalendarSidebarProps) {
       {/* Desktop sticky sidebar */}
       <aside className="sticky top-20 hidden lg:block">
         <div className="rounded-xl border border-border bg-card p-5 shadow-soft-sm">
-          <SidebarBody branches={branches} total={total} />
+          <SidebarBody total={total} />
         </div>
       </aside>
     </>
@@ -87,12 +77,11 @@ export function CalendarSidebar({ branches, total }: CalendarSidebarProps) {
 }
 
 interface SidebarBodyProps {
-  branches: BranchOption[];
   total: number;
   onApplied?: () => void;
 }
 
-function SidebarBody({ branches, total, onApplied }: SidebarBodyProps) {
+function SidebarBody({ total, onApplied }: SidebarBodyProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -110,7 +99,7 @@ function SidebarBody({ branches, total, onApplied }: SidebarBodyProps) {
     const merged: Partial<CalendarFilters> = {
       ...filters,
       ...next,
-      ...(branches.length === 0 ? { branch_id: undefined } : {}),
+      branch_id: undefined,
     };
     const sp = serializeCalendarFilters(merged);
     const url = sp.toString() ? `${pathname}?${sp.toString()}` : pathname;
@@ -213,32 +202,6 @@ function SidebarBody({ branches, total, onApplied }: SidebarBodyProps) {
           />
         </div>
       </div>
-
-      <Separator />
-
-      {branches.length > 0 && (
-        <div>
-          <SectionTitle>Филиал</SectionTitle>
-          <div className="mt-2">
-            <Select
-              value={filters.branch_id ?? "all"}
-              onValueChange={(v) => updateUrl({ branch_id: v === "all" ? undefined : v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Все филиалы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все филиалы</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
 
       <Separator />
 

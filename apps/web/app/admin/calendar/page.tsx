@@ -68,14 +68,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
 
       <div>
         <div>
-          <CalendarContent
-            events={events}
-            branches={[]}
-            canAuthor={canAuthor}
-            canEditNullBranch={true}
-            defaultBranchId={null}
-            initialDate={range.from}
-          />
+          <CalendarContent events={events} canAuthor={canAuthor} initialDate={range.from} />
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { getCurrentUser } from "@/lib/auth/helpers";
 import { getServerCaller } from "@/lib/trpc/server";
 import { dateOnlyLabel } from "@/lib/events/dates";
+import { GuestEventRegistration } from "@/components/events/guest-event-registration";
 
 import { EVENT_TYPE_LABELS, type EventTypeValue } from "../../../admin/calendar/filters";
 
@@ -134,16 +135,15 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
                 <div className="font-medium text-brand-primary">{event.speaker.name}</div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="size-4 text-foreground/50" aria-hidden />
-              <div>
-                <div className="text-xs uppercase tracking-wider text-foreground/50">Место</div>
-                <div className="font-medium text-brand-primary">
-                  {event.venue ??
-                    (event.branch ? `${event.branch.city} · ${event.branch.name}` : "Все филиалы")}
+            {event.venue && (
+              <div className="flex items-center gap-2">
+                <MapPin className="size-4 text-foreground/50" aria-hidden />
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-foreground/50">Место</div>
+                  <div className="font-medium text-brand-primary">{event.venue}</div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-xs text-foreground/50">Стоимость</span>
               <span className="font-medium text-brand-primary">
@@ -184,23 +184,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             {startInPast ? (
               <p className="text-sm text-foreground/60">Событие уже прошло.</p>
             ) : !user ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-foreground/70">
-                  Чтобы записаться, войдите в аккаунт или зарегистрируйтесь.
-                </p>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button asChild variant="outline" size="lg">
-                    <Link href={`/login?callbackUrl=${encodeURIComponent(`/event/${event.id}`)}`}>
-                      Войти
-                    </Link>
-                  </Button>
-                  <Button asChild variant="accent" size="lg">
-                    <Link href={`/signup?callbackUrl=${encodeURIComponent(`/event/${event.id}`)}`}>
-                      Зарегистрироваться
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+              <GuestEventRegistration eventId={event.id} />
             ) : myBooking ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-foreground/80">

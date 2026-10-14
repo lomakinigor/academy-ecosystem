@@ -12,18 +12,13 @@ import { EventFormModal, type EventFormInitial } from "./event-form-modal";
 import { AdminEventCalendar } from "./admin-event-calendar";
 import { academyDay } from "@/lib/events/rolling-range";
 
-interface BranchOption {
-  id: string;
-  name: string;
-  city: string;
-}
-
 interface CalendarContentProps {
   events: EventCardData[];
-  branches: BranchOption[];
+  /** Сохраняем совместимость с будущим разделением на филиалы. */
+  branches?: Array<{ id: string; name: string; city: string }>;
   canAuthor: boolean; // юзер может вообще создавать события
-  canEditNullBranch: boolean; // юзер может ставить branch_id=null (общеакад.)
-  defaultBranchId: string | null;
+  canEditNullBranch?: boolean;
+  defaultBranchId?: string | null;
   initialDate: Date;
 }
 
@@ -57,14 +52,7 @@ const fromCard = (e: EventCardData): EventFormInitial => ({
  * Client-обёртка вокруг agenda-list + создания/редактирования.
  * Владеет state модалки и колбэками. Всё ниже остаётся «тупым» рендером.
  */
-export function CalendarContent({
-  events,
-  branches,
-  canAuthor,
-  canEditNullBranch,
-  defaultBranchId,
-  initialDate,
-}: CalendarContentProps) {
+export function CalendarContent({ events, canAuthor, initialDate }: CalendarContentProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -120,22 +108,13 @@ export function CalendarContent({
         onCreate={openCreate}
       />
 
-      <EventBatchModal
-        open={batchOpen}
-        onOpenChange={setBatchOpen}
-        branches={branches}
-        defaultBranchId={defaultBranchId}
-        canEditNullBranch={canEditNullBranch}
-      />
+      <EventBatchModal open={batchOpen} onOpenChange={setBatchOpen} />
 
       <EventFormModal
         open={open}
         onOpenChange={setOpen}
-        branches={branches}
         initial={initial}
         defaultDate={createDate}
-        canEditNullBranch={canEditNullBranch}
-        defaultBranchId={defaultBranchId}
         onSwitchToBatch={() => {
           setOpen(false);
           setBatchOpen(true);

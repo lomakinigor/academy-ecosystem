@@ -9,7 +9,7 @@ import type { AcademicLevel as UIAcademicLevel } from "@academy/ui";
 
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
-import { LogoutButton } from "./logout-button";
+import { ExitAdminPanel } from "./exit-admin-panel";
 import { AdminNav } from "./admin-nav";
 
 const academicLevelToUI = (level: string): UIAcademicLevel => {
@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             ) : (
               <AcademicBadge level={academicLevelToUI(user.academic_level)} size="sm" />
             )}
-            <LogoutButton />
+            <ExitAdminPanel />
           </div>
 
           <AdminNav />

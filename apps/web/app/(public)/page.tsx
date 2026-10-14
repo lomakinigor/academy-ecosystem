@@ -80,7 +80,7 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <CalendarSidebar branches={[]} total={events.length} />
+        <CalendarSidebar total={events.length} />
 
         <div>
           <AgendaList

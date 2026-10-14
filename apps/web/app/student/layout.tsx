@@ -8,7 +8,6 @@ import type { AcademicLevel as UIAcademicLevel } from "@academy/ui";
 
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Wordmark } from "@/components/brand/wordmark";
-import { LogoutButton } from "../admin/logout-button";
 
 const academicLevelToUI = (level: string): UIAcademicLevel => {
   const lower = level.toLowerCase();
@@ -49,7 +48,6 @@ export default async function StudentLayout({ children }: { children: ReactNode 
               <div className="text-xs text-foreground/60">{user.email}</div>
             </div>
             <AcademicBadge level={academicLevelToUI(user.academic_level)} size="sm" />
-            <LogoutButton />
           </div>
         </div>
       </header>

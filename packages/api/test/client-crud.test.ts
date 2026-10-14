@@ -62,4 +62,22 @@ describe("clientRouter", () => {
 
     await expect(appRouter.createCaller(ctx).clients.list()).rejects.toThrow(TRPCError);
   });
+
+  it("возвращает роль и признак регистрации для управления правами в списке", async () => {
+    const prisma = makePrisma();
+    const ctx = makeCtx(session(), prisma);
+
+    await appRouter.createCaller(ctx).clients.list();
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          system_role: true,
+          is_owner: true,
+          email: true,
+          password_hash: true,
+        }),
+      }),
+    );
+  });
 });

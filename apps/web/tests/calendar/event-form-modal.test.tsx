@@ -160,9 +160,9 @@ describe("EventFormModal — режимы создания и редактиро
     });
   });
 
-  it("показывает «Все филиалы» только если canEditNullBranch=true", () => {
+  it("не показывает филиалы в форме MVP", () => {
     mockEmptyQueries();
-    const { rerender } = render(
+    render(
       <TRPCProvider>
         <EventFormModal
           open={true}
@@ -173,23 +173,7 @@ describe("EventFormModal — режимы создания и редактиро
         />
       </TRPCProvider>,
     );
-    // scoped юзер — пункта быть не должно (но Select закрыт по умолчанию;
-    // проверяем через DOM-поиск, открыв селект)
-    // Для простоты проверим только наличие фильтрового UI: city Москва есть
-    expect(screen.getAllByText(/Москва/).length).toBeGreaterThan(0);
-
-    rerender(
-      <TRPCProvider>
-        <EventFormModal
-          open={true}
-          onOpenChange={() => {}}
-          branches={branches}
-          canEditNullBranch={true}
-          defaultBranchId={null}
-        />
-      </TRPCProvider>,
-    );
-    // Глобальный юзер видит ту же базу
-    expect(screen.getAllByText(/Москва/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Москва/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/филиал/i)).not.toBeInTheDocument();
   });
 });

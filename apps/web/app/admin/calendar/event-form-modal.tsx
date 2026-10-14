@@ -30,6 +30,12 @@ type PricingType = "FIXED" | "DONATION" | "FREE";
 type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 type EventFormat = "OFFLINE" | "ONLINE" | "HYBRID";
 
+interface BranchOption {
+  id: string;
+  name: string;
+  city: string;
+}
+
 const PRICING_LABELS: Record<PricingType, string> = {
   FIXED: "Цена",
   DONATION: "Донат",
@@ -41,12 +47,6 @@ const FORMAT_LABELS: Record<EventFormat, string> = {
   ONLINE: "Онлайн",
   HYBRID: "Онлайн + Офлайн",
 };
-
-interface BranchOption {
-  id: string;
-  name: string;
-  city: string;
-}
 
 export interface EventFormInitial {
   id: string;
@@ -77,10 +77,11 @@ export interface EventFormInitial {
 interface EventFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  branches: BranchOption[];
+  /** Сохраняем совместимость с будущим разделением на филиалы. */
+  branches?: BranchOption[];
   initial?: EventFormInitial;
-  canEditNullBranch: boolean;
-  defaultBranchId: string | null;
+  canEditNullBranch?: boolean;
+  defaultBranchId?: string | null;
   onSwitchToBatch?: () => void;
   defaultDate?: string;
 }
@@ -107,10 +108,7 @@ const formatToFlags = (fmt: EventFormat): { is_online: boolean; is_hybrid: boole
 export function EventFormModal({
   open,
   onOpenChange,
-  branches,
   initial,
-  canEditNullBranch,
-  defaultBranchId,
   onSwitchToBatch,
   defaultDate,
 }: EventFormModalProps) {
@@ -227,7 +225,7 @@ export function EventFormModal({
       }
       setStart(toLocalInput(now));
       setEnd("");
-      setBranchId(defaultBranchId ?? "");
+      setBranchId("");
       setSpeakerId("");
       setFormat("OFFLINE");
       setVenue("");
@@ -237,7 +235,7 @@ export function EventFormModal({
       setMaxParticipants("");
       setTagsRaw("");
     }
-  }, [open, initial, defaultBranchId, defaultDate]);
+  }, [open, initial, defaultDate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -424,29 +422,6 @@ export function EventFormModal({
                 </SelectContent>
               </Select>
             </Field>
-
-            {branches.length > 0 && (
-              <Field label="Филиал">
-                <Select
-                  value={branchId === "" ? "__null__" : branchId}
-                  onValueChange={(v) => setBranchId(v === "__null__" ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите филиал" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {canEditNullBranch && (
-                      <SelectItem value="__null__">Все филиалы (общеакадемическое)</SelectItem>
-                    )}
-                    {branches.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
 
             <Field label="Краткое название для календаря">
               <Input

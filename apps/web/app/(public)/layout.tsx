@@ -1,8 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LogIn } from "lucide-react";
-
-import { AcademicBadge, Button } from "@academy/ui";
+import { AcademicBadge } from "@academy/ui";
 import type { AcademicLevel as UIAcademicLevel } from "@academy/ui";
 
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -10,7 +8,7 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { getCurrentUser } from "@/lib/auth/helpers";
 import { SystemRole } from "@/lib/auth/types";
 
-import { LogoutButton } from "../admin/logout-button";
+import { GuestAdminEntry } from "@/components/auth/guest-admin-entry";
 
 const academicLevelToUI = (level: string): UIAcademicLevel => {
   const lower = level.toLowerCase();
@@ -62,23 +60,9 @@ export default async function PublicLayout({ children }: { children: ReactNode }
                   <div className="text-xs text-foreground/60">{user.email}</div>
                 </div>
                 <AcademicBadge level={academicLevelToUI(user.academic_level)} size="sm" />
-                <LogoutButton />
               </>
             ) : (
-              <>
-                <Link
-                  href="/signup"
-                  className="hidden text-sm font-medium text-brand-primary underline-offset-4 hover:underline sm:inline"
-                >
-                  Регистрация
-                </Link>
-                <Button asChild variant="accent" size="sm">
-                  <Link href="/login">
-                    <LogIn className="mr-2 size-4" aria-hidden />
-                    Войти
-                  </Link>
-                </Button>
-              </>
+              <GuestAdminEntry />
             )}
           </div>
         </div>

@@ -26,23 +26,24 @@ import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./fil
 import { dateOnlyStart, dateOnlyEnd } from "@/lib/events/dates";
 import { normalizeParticipantLimit } from "@/lib/events/participant-limit";
 
+interface Speaker {
+  id: string;
+  name: string;
+}
+
 interface BranchOption {
   id: string;
   name: string;
   city: string;
 }
 
-interface Speaker {
-  id: string;
-  name: string;
-}
-
 interface EventBatchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  branches: BranchOption[];
-  defaultBranchId: string | null;
-  canEditNullBranch: boolean;
+  /** Сохраняем совместимость с будущим разделением на филиалы. */
+  branches?: BranchOption[];
+  defaultBranchId?: string | null;
+  canEditNullBranch?: boolean;
 }
 
 type EventFormat = "OFFLINE" | "ONLINE" | "HYBRID";
@@ -78,13 +79,7 @@ type RowState = ParsedEvent & {
 
 const toDatetimeLocal = (date: string, time: string): string => `${date}T${time}`;
 
-export function EventBatchModal({
-  open,
-  onOpenChange,
-  branches,
-  defaultBranchId,
-  canEditNullBranch,
-}: EventBatchModalProps) {
+export function EventBatchModal({ open, onOpenChange }: EventBatchModalProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [text, setText] = useState("");
@@ -120,7 +115,7 @@ export function EventBatchModal({
         body: JSON.stringify({
           text,
           speakers: speakerList.map((s) => ({ id: s.id, name: s.name })),
-          branches: branches.map((b) => ({ id: b.id, city: b.city })),
+          branches: [],
         }),
       });
       if (!res.ok) {
@@ -143,7 +138,7 @@ export function EventBatchModal({
             ...e,
             end_date: e.end_date ?? e.date,
             is_all_day: e.is_all_day ?? false,
-            branch_id: branches.length === 0 ? null : (e.branch_id ?? defaultBranchId),
+            branch_id: null,
             include: true,
             is_hybrid: false,
             speaker_status,
@@ -349,7 +344,6 @@ export function EventBatchModal({
                     <th className="py-2 pr-3">Тип</th>
                     <th className="py-2 pr-3">Даты и время</th>
                     <th className="py-2 pr-3">Спикер</th>
-                    {branches.length > 0 && <th className="py-2 pr-3">Филиал</th>}
                     <th className="py-2 pr-3">Формат</th>
                     <th className="py-2">Цена</th>
                   </tr>
@@ -547,38 +541,6 @@ export function EventBatchModal({
                           )}
                         </td>
 
-                        {branches.length > 0 && (
-                          <td className="py-2 pr-3">
-                            <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
-                              Филиал
-                            </span>
-                            <Select
-                              value={row.branch_id ?? "__null__"}
-                              onValueChange={(v) =>
-                                updateRow(i, { branch_id: v === "__null__" ? null : v })
-                              }
-                            >
-                              <SelectTrigger
-                                aria-label={`Филиал мероприятия ${i + 1}`}
-                                className="h-11 w-full text-sm sm:h-8 sm:w-[130px] sm:text-xs"
-                              >
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {canEditNullBranch && (
-                                  <SelectItem value="__null__" className="text-xs">
-                                    Все филиалы
-                                  </SelectItem>
-                                )}
-                                {branches.map((b) => (
-                                  <SelectItem key={b.id} value={b.id} className="text-xs">
-                                    {b.city}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                        )}
                         <td className="py-2 pr-3">
                           <span className="mb-1 block text-xs text-foreground/60 sm:hidden">
                             Формат

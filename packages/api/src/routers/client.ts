@@ -35,12 +35,16 @@ export const clientRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     assertCanManageClients(ctx.user);
 
-    return ctx.prisma.user.findMany({
+    const clients = await ctx.prisma.user.findMany({
       where: { is_speaker: false },
       select: {
         id: true,
         name: true,
         createdAt: true,
+        email: true,
+        password_hash: true,
+        system_role: true,
+        is_owner: true,
         contacts: {
           select: { channel: true, value: true, verified_at: true },
           orderBy: { createdAt: "asc" },
@@ -48,6 +52,11 @@ export const clientRouter = router({
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return clients.map(({ email, password_hash, ...client }) => ({
+      ...client,
+      is_registered: Boolean(email && password_hash),
+    }));
   }),
 
   create: protectedProcedure.input(clientCreateSchema).mutation(async ({ ctx, input }) => {

@@ -34,11 +34,11 @@ describe("EventCard", () => {
     expect(screen.queryByText(/не указано/i)).toBeNull();
     expect(screen.queryByText(new RegExp(`${time}–`))).toBeNull();
   });
-  it("рендерит заголовок, спикера, филиал и описание", () => {
-    render(<EventCard event={baseEvent()} />);
+  it("рендерит заголовок, спикера, место и описание", () => {
+    render(<EventCard event={baseEvent({ venue: "На поселении" })} />);
     expect(screen.getByText("Храм-3: день 1")).toBeInTheDocument();
     expect(screen.getByText("В.Ю. Светлов")).toBeInTheDocument();
-    expect(screen.getByText("Москва")).toBeInTheDocument();
+    expect(screen.getByText("На поселении")).toBeInTheDocument();
     expect(screen.getByText(/Подготовка и вход/)).toBeInTheDocument();
   });
 
@@ -59,9 +59,9 @@ describe("EventCard", () => {
     expect(screen.getByText("СВЕТЛОЯР")).toBeInTheDocument();
   });
 
-  it("выводит «Все филиалы» если branch=null", () => {
+  it("не показывает филиал вместо неуказанного места", () => {
     render(<EventCard event={baseEvent({ branch: null })} />);
-    expect(screen.getByText("Все филиалы")).toBeInTheDocument();
+    expect(screen.queryByText(/филиал/i)).not.toBeInTheDocument();
   });
 
   it("показывает progress-бар capacity = bookings/max", () => {

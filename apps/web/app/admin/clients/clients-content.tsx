@@ -24,6 +24,9 @@ type ClientCard = {
   id: string;
   name: string;
   createdAt: Date;
+  system_role: string;
+  is_owner: boolean;
+  is_registered: boolean;
   contacts: Array<{ channel: ContactChannel; value: string; verified_at: Date | null }>;
 };
 
@@ -55,6 +58,7 @@ export function ClientsContent({
     MAX: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const create = trpc.clients.create.useMutation({
     onSuccess: () => {
@@ -64,6 +68,10 @@ export function ClientsContent({
       setContacts({ EMAIL: "", TELEGRAM: "", WHATSAPP: "", MAX: "" });
     },
     onError: (requestError) => setError(requestError.message),
+  });
+  const updateAdmin = trpc.administration.setAdmin.useMutation({
+    onSuccess: () => startTransition(() => router.refresh()),
+    onError: (requestError) => setAdminError(requestError.message),
   });
 
   const submit = (event: React.FormEvent) => {
@@ -110,35 +118,80 @@ export function ClientsContent({
         </Link>
       )}
 
+      {adminError && (
+        <p
+          role="alert"
+          className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          {adminError}
+        </p>
+      )}
+
       <div className="space-y-3">
         {clients.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-5 text-sm text-foreground/70">
             Клиентов пока нет. Добавьте клиента вручную или дождитесь самостоятельной регистрации.
           </div>
         ) : (
-          clients.map((client) => (
-            <article
-              key={client.id}
-              className="rounded-xl border border-border bg-card p-4 shadow-sm"
-            >
-              <h2 className="font-heading text-lg font-semibold text-brand-primary">
-                {client.name}
-              </h2>
-              <p className="mt-1 text-xs text-foreground/60">
-                Создана {formatDate(client.createdAt)}
-              </p>
-              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                {client.contacts.map((contact) => (
-                  <div key={`${contact.channel}-${contact.value}`}>
-                    <dt className="text-xs text-foreground/60">
-                      {CONTACT_LABELS[contact.channel]}
-                    </dt>
-                    <dd className="break-all text-foreground">{contact.value}</dd>
+          clients.map((client) => {
+            const isAdmin = client.system_role !== "STUDENT";
+            return (
+              <article
+                key={client.id}
+                className="rounded-xl border border-border bg-card p-4 shadow-sm"
+              >
+                <h2 className="font-heading text-lg font-semibold text-brand-primary">
+                  {client.name}
+                </h2>
+                <p className="mt-1 text-xs text-foreground/60">
+                  Создана {formatDate(client.createdAt)}
+                </p>
+                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                  {client.contacts.map((contact) => (
+                    <div key={`${contact.channel}-${contact.value}`}>
+                      <dt className="text-xs text-foreground/60">
+                        {CONTACT_LABELS[contact.channel]}
+                      </dt>
+                      <dd className="break-all text-foreground">{contact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {isOwner && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                    <span className="text-sm text-foreground/70">
+                      {client.is_owner
+                        ? "Владелец"
+                        : !client.is_registered
+                          ? "Зарегистрируется самостоятельно"
+                          : isAdmin
+                            ? "Администратор"
+                            : "Клиент"}
+                    </span>
+                    {!client.is_owner && client.is_registered && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={updateAdmin.isLoading}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `${isAdmin ? "Снять права администратора у" : "Назначить администратором"} ${client.name}?`,
+                            )
+                          )
+                            return;
+                          setAdminError(null);
+                          updateAdmin.mutate({ id: client.id, isAdmin: !isAdmin });
+                        }}
+                      >
+                        {isAdmin ? "Снять права администратора" : "Назначить администратором"}
+                      </Button>
+                    )}
                   </div>
-                ))}
-              </dl>
-            </article>
-          ))
+                )}
+              </article>
+            );
+          })
         )}
       </div>
 

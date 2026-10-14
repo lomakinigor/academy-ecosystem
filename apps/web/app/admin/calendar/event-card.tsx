@@ -157,10 +157,12 @@ export function EventCard({ event, onClick, href, displayDay }: EventCardProps) 
             <User2 className="size-4 text-foreground/50" aria-hidden />
             <span>{event.speaker.name}</span>
           </div>
-          <div className="flex items-center gap-2 text-foreground/80">
-            <MapPin className="size-4 text-foreground/50" aria-hidden />
-            <span>{event.venue ?? (event.branch ? event.branch.city : "Все филиалы")}</span>
-          </div>
+          {event.venue && (
+            <div className="flex items-center gap-2 text-foreground/80">
+              <MapPin className="size-4 text-foreground/50" aria-hidden />
+              <span>{event.venue}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="text-xs text-foreground/50">Время</span>
             <span>
