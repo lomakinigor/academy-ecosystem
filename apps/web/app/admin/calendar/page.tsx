@@ -20,7 +20,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
 
   const eventsResult = await caller.event.list({
     from: range.from,
-    to: range.to,
+    to: new Date("9999-12-31T23:59:59Z"),
   });
 
   const events: EventCardData[] = eventsResult.events

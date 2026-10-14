@@ -11,7 +11,7 @@ import {
 } from "@academy/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { EventCardData } from "./event-card";
-import { academyDay, dayLabel, rollingRange, shiftDay } from "@/lib/events/rolling-range";
+import { academyDay, dayLabel, shiftDay } from "@/lib/events/rolling-range";
 
 export function AdminEventCalendar({
   events,
@@ -27,7 +27,18 @@ export function AdminEventCalendar({
   onCreate: (date: string) => void;
 }) {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const range = rollingRange(start);
+  const end = shiftDay(start, 13);
+  const days = Array.from({ length: 14 }, (_, index) => shiftDay(start, index));
+  const laterDays = new Set<string>();
+  for (const event of events) {
+    const first = event.is_all_day
+      ? event.start_at.toISOString().slice(0, 10)
+      : academyDay(event.start_at);
+    const lastDate = event.end_at ? new Date(event.end_at.getTime() - 1) : event.start_at;
+    const last = event.is_all_day ? lastDate.toISOString().slice(0, 10) : academyDay(lastDate);
+    for (let day = first > end ? first : shiftDay(end, 1); day <= last; day = shiftDay(day, 1))
+      laterDays.add(day);
+  }
   const dailyEvents = (day: string) =>
     events
       .filter((event) => {
@@ -46,13 +57,13 @@ export function AdminEventCalendar({
   };
   return (
     <section
-      aria-label="Рабочий календарь на месяц"
+      aria-label="Рабочий календарь на две недели"
       className="mx-auto w-full max-w-2xl rounded-xl border border-border bg-card p-2 sm:p-5"
     >
-      <div className="mb-2 flex items-center justify-between gap-1">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="font-heading text-xs font-semibold sm:text-base">
-            {dayLabel(start)} — {dayLabel(range.end)}
+            {dayLabel(start)} — {dayLabel(end)}
           </h2>
           <p className="text-xs text-foreground/60">{events.length} мероприятий</p>
         </div>
@@ -93,7 +104,7 @@ export function AdminEventCalendar({
         {Array.from({ length: offset }, (_, index) => (
           <span key={`empty-${index}`} aria-hidden="true" />
         ))}
-        {range.days.map((day) => {
+        {days.map((day) => {
           const daily = dailyEvents(day);
           const weekday = new Date(`${day}T00:00Z`).getUTCDay();
           const occupied = daily.length > 0;
@@ -125,6 +136,32 @@ export function AdminEventCalendar({
           );
         })}
       </div>
+      {laterDays.size > 0 && (
+        <div className="mt-3 border-t border-border pt-2">
+          <h3 className="mb-2 text-xs font-semibold text-foreground/60">Позже</h3>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(laterDays)
+              .sort()
+              .map((day) => {
+                const daily = dailyEvents(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    aria-label={`${dayLabel(day)} — ${daily.length} мероприятий`}
+                    onClick={() => (daily.length === 1 ? onEdit(daily[0]!) : setSelectedDay(day))}
+                    className="flex size-11 flex-col items-center justify-center rounded-full border border-brand-accent/50 bg-brand-accent/20 text-xs focus-visible:ring-2 focus-visible:ring-brand-accent"
+                  >
+                    <span className="font-semibold">
+                      {day.slice(8)}.{day.slice(5, 7)}
+                    </span>
+                    <span className="text-[10px] text-foreground/60">{daily.length}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      )}
       <Dialog
         open={selectedDay !== null}
         onOpenChange={(open) => {

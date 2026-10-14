@@ -27,6 +27,29 @@ const event: EventCardData = {
   venue: "На поселении",
 };
 describe("Рабочий месяц администратора", () => {
+  it("показывает позднюю занятую дату отдельным кругом без пустых дней между", async () => {
+    const edit = vi.fn();
+    const later = {
+      ...event,
+      start_at: new Date("2027-01-10T00:00Z"),
+      end_at: new Date("2027-01-11T00:00Z"),
+    };
+    render(
+      <AdminEventCalendar
+        events={[later]}
+        start="2026-10-15"
+        onChange={vi.fn()}
+        onEdit={edit}
+        onCreate={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("group", { name: "Дни календаря" }).querySelectorAll("button"),
+    ).toHaveLength(14);
+    expect(screen.queryByRole("button", { name: /9 января/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "10 января — 1 мероприятий" }));
+    expect(edit).toHaveBeenCalledWith(later);
+  });
   it("скользит от текущей даты, ограничивает конец короткого месяца", () => {
     expect(rollingRange("2026-10-14").end).toBe("2026-11-14");
     expect(rollingRange("2027-01-31").end).toBe("2027-02-28");
@@ -58,8 +81,8 @@ describe("Рабочий месяц администратора", () => {
         screen.getByRole("button", { name: `${day} октября — 1 мероприятий` }),
       ).toHaveTextContent("1");
     expect(screen.queryByText("Направления")).toBeNull();
-    expect(screen.getByRole("button", { name: /14 ноября — 0 мероприятий/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /15 ноября — 0 мероприятий/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /27 октября — 0 мероприятий/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /28 октября — 0 мероприятий/ })).toBeNull();
   });
   it("листается по неделе и открывает создание на конкретный день", async () => {
     const change = vi.fn(),

@@ -69,6 +69,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   const justBooked = searchParams.booked === "1";
   const justCancelled = searchParams.cancelled === "1";
   const startInPast = event.start_at.getTime() < Date.now();
+  const titleParts = event.title.match(/^(.*?)\s*[.,:—–-]?\s*(\d+\s*день)\s*$/i);
 
   return (
     <div className="mx-auto max-w-screen-md px-4 py-6 sm:px-6 lg:px-8">
@@ -96,9 +97,12 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             ))}
           </div>
 
-          <h1 className="mt-3 font-heading text-3xl font-bold text-brand-primary sm:text-4xl">
-            {event.title}
+          <h1 className="mt-3 break-words font-heading text-xl font-bold text-brand-primary [overflow-wrap:anywhere] sm:text-4xl">
+            {titleParts ? titleParts[1] : event.title}
           </h1>
+          {titleParts && (
+            <p className="mt-1 text-base font-semibold text-brand-primary">{titleParts[2]}</p>
+          )}
 
           {event.description && (
             <p className="mt-4 whitespace-pre-line text-base text-foreground/80">

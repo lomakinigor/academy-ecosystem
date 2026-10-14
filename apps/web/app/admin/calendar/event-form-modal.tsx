@@ -665,7 +665,7 @@ export function EventFormModal({
             </div>
           )}
 
-          <DialogFooter className="sticky -bottom-4 z-10 -mx-4 flex-row items-center justify-between gap-1 border-t border-border bg-card px-2 py-2 sm:static sm:mx-0 sm:border-0 sm:p-0 [&_button]:px-2 [&_button]:text-xs sm:[&_button]:text-sm">
+          <DialogFooter className="sticky -bottom-4 z-10 -mx-4 grid grid-cols-3 items-center gap-2 border-t border-border bg-card px-2 py-2 sm:static sm:mx-0 sm:border-0 sm:p-0 [&_button]:w-full [&_button]:px-2 [&_button]:text-xs sm:[&_button]:text-sm">
             {isEdit ? (
               <Button
                 type="button"
@@ -681,7 +681,7 @@ export function EventFormModal({
             ) : (
               <span />
             )}
-            <div className="flex min-w-0 flex-row gap-1 sm:gap-2">
+            <div className="contents">
               <Button
                 type="button"
                 variant="ghost"
