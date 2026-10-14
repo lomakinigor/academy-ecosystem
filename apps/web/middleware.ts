@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { NextRequest, NextFetchEvent } from "next/server";
+import type { NextRequest, NextFetchEvent, NextMiddleware } from "next/server";
 
 import { auth } from "@/auth";
 import { matchRule, hasRoleAtLeast } from "@/lib/auth/rbac";
@@ -31,7 +31,7 @@ const authenticatedMiddleware = auth(
 
 // Auth.js beta lazy config wraps middleware asynchronously.
 export default async function middleware(request: NextRequest, event: NextFetchEvent) {
-  const handler = await authenticatedMiddleware;
+  const handler = (await authenticatedMiddleware) as unknown as NextMiddleware;
   return handler(request, event);
 }
 
