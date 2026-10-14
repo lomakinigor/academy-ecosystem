@@ -106,7 +106,7 @@ export function AdminEventCalendar({
                     title={event.title}
                     aria-label={`${event.title} — ${dayLabel(day)}, редактировать`}
                     onClick={() => onEdit(event)}
-                    className="block h-6 w-full min-w-0 truncate rounded px-0.5 text-[10px] leading-6 font-medium text-brand-primary hover:bg-brand-accent/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent sm:text-xs"
+                    className="block h-5 w-full min-w-0 truncate rounded px-0.5 text-[10px] leading-5 font-medium text-brand-primary hover:bg-brand-accent/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent sm:text-xs"
                   >
                     {calendarTitle(event.title, event.calendar_title)}
                   </button>
