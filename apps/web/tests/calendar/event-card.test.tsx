@@ -24,7 +24,7 @@ const baseEvent = (overrides: Partial<EventCardData> = {}): EventCardData => ({
 });
 
 describe("EventCard", () => {
-  it("в компактном публичном виде оставляет основные данные, а остальное прячет в раскрытие", () => {
+  it("краткая публичная карточка сразу ведёт на полное мероприятие", () => {
     render(
       <EventCard
         event={baseEvent({
@@ -39,11 +39,10 @@ describe("EventCard", () => {
 
     expect(screen.getByTestId("compact-event-card")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Храм" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 4, name: "Храм-3: день 1" })).toBeInTheDocument();
     expect(screen.getByText(/В\.Ю\. Светлов/)).toBeInTheDocument();
-    expect(screen.getByText("Подробнее")).toBeInTheDocument();
-    expect(screen.getByText(/Место: На поселении/).closest("details")).not.toHaveAttribute("open");
-    expect(screen.getByRole("link", { name: "Открыть мероприятие" })).toHaveAttribute(
+    expect(screen.queryByText("Подробнее")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Место: На поселении/)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Храм-3: день 1" })).toHaveAttribute(
       "href",
       "/event/evt1",
     );

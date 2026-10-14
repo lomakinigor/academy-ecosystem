@@ -125,7 +125,7 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
         ? `${startTime}–${endTime}`
         : startTime;
 
-    return (
+    const compactCard = (
       <Card data-testid="compact-event-card" className="overflow-hidden">
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
@@ -147,27 +147,19 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
               </p>
             </div>
           </div>
-
-          <details className="group mt-2 border-t border-border pt-2">
-            <summary className="cursor-pointer text-sm font-medium text-brand-primary marker:content-none">
-              Подробнее
-            </summary>
-            <div className="mt-3 space-y-2 text-sm text-foreground/75">
-              <h4 className="font-heading font-semibold text-brand-primary">{event.title}</h4>
-              {event.description && <p>{event.description}</p>}
-              {event.venue && <p>Место: {event.venue}</p>}
-              <p>{event.is_online ? "Онлайн" : "Очно"}</p>
-              <p>Стоимость: {formatPrice(event)}</p>
-              {event.tags.length > 0 && <p>{event.tags.join(" · ")}</p>}
-              {href && (
-                <Link href={href} className="inline-block font-medium text-brand-primary underline">
-                  Открыть мероприятие
-                </Link>
-              )}
-            </div>
-          </details>
         </CardContent>
       </Card>
+    );
+    return href ? (
+      <Link
+        href={href}
+        aria-label={event.title}
+        className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2"
+      >
+        {compactCard}
+      </Link>
+    ) : (
+      compactCard
     );
   }
 
