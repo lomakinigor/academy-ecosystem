@@ -26,7 +26,9 @@ export function AdminEventCalendar({
         const offset = event.is_all_day ? "Z" : "+05:00";
         return (
           event.start_at < new Date(`${shiftDay(day, 1)}T00:00:00${offset}`) &&
-          event.end_at > new Date(`${day}T00:00:00${offset}`)
+          (event.end_at
+            ? event.end_at > new Date(`${day}T00:00:00${offset}`)
+            : event.start_at >= new Date(`${day}T00:00:00${offset}`))
         );
       })
       .sort((a, b) => a.start_at.getTime() - b.start_at.getTime());

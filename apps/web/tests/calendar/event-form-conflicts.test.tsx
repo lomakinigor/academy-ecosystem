@@ -151,11 +151,20 @@ describe("Форма: время и подтверждение пересече�
     );
   });
 
-  it("новому событию задаёт окончание через два часа", () => {
+  it("новому событию оставляет окончание пустым", () => {
     showForm(null);
-    const start = screen.getByLabelText("Начало") as HTMLInputElement;
     const end = screen.getByLabelText("Окончание") as HTMLInputElement;
-    expect(new Date(end.value).getTime() - new Date(start.value).getTime()).toBe(7200000);
+    expect(end.value).toBe("");
+    expect(end).not.toBeRequired();
+  });
+  it("очищает окончание при редактировании без фиктивных часов", async () => {
+    showForm();
+    fireEvent.change(screen.getByLabelText("Окончание"), { target: { value: "" } });
+    await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() =>
+      expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ end_at: null })),
+    );
+    expect(api.check).not.toHaveBeenCalled();
   });
 
   it("не сохраняет неверный диапазон", async () => {

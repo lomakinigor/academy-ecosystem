@@ -24,6 +24,14 @@ const ev = (id: string, start: string, title: string): EventCardData => ({
 });
 
 describe("AgendaList", () => {
+  it("событие без окончания показывает только в день начала", () => {
+    render(
+      <AgendaList events={[{ ...ev("e1", "2026-10-15T10:00+05:00", "Семинар"), end_at: null }]} />,
+    );
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("15 октября");
+    expect(screen.queryByText(/не указано/i)).toBeNull();
+  });
   it("показывает семинар 15–17 во всех днях и не показывает 18-е", () => {
     render(
       <AgendaList

@@ -147,7 +147,10 @@ describe("eventRouter.list — фильтры в where", () => {
   it("фильтр по диапазону дат всегда включён", async () => {
     const where = await callWith({});
     expect(where.AND).toEqual(
-      expect.arrayContaining([{ end_at: { gt: range.from } }, { start_at: { lte: range.to } }]),
+      expect.arrayContaining([
+        { OR: [{ end_at: { gt: range.from } }, { end_at: null, start_at: { gte: range.from } }] },
+        { start_at: { lte: range.to } },
+      ]),
     );
   });
 
@@ -163,7 +166,9 @@ describe("eventRouter.list — фильтры в where", () => {
 
   it("полнотекстовый search по title/description", async () => {
     const where = await callWith({ search: "храм" });
-    const or = where.AND.find((c) => "OR" in c) as {
+    const or = where.AND.find(
+      (c) => "OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "title" in item),
+    ) as {
       OR: Array<Record<string, unknown>>;
     };
     expect(or.OR[0]).toEqual({ title: { contains: "храм", mode: "insensitive" } });
@@ -198,7 +203,9 @@ describe("eventRouter.list — RBAC по филиалам", () => {
   it("PRESIDENT без явного фильтра → нет ограничения по филиалу", async () => {
     const and = await collectWhere(session({ system_role: "PRESIDENT" }));
     const branchClause = and.find(
-      (c) => "branch_id" in c || ("OR" in c && (c as { OR: unknown[] }).OR.length === 2),
+      (c) =>
+        "branch_id" in c ||
+        ("OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "branch_id" in item)),
     );
     expect(branchClause).toBeUndefined();
   });
@@ -209,9 +216,10 @@ describe("eventRouter.list — RBAC по филиалам", () => {
       branch_id: "branch_msk",
     });
     const and = await collectWhere(sess);
-    const or = and.find((c) => "OR" in c && Array.isArray((c as { OR: unknown[] }).OR)) as
-      | { OR: Array<Record<string, unknown>> }
-      | undefined;
+    const or = and.find(
+      (c) =>
+        "OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "branch_id" in item),
+    ) as { OR: Array<Record<string, unknown>> } | undefined;
     expect(or).toBeUndefined();
   });
 
@@ -223,7 +231,14 @@ describe("eventRouter.list — RBAC по филиалам", () => {
     const and = await collectWhere(sess, "branch_alien");
     const never = and.find((c) => "id" in c);
     expect(never).toBeUndefined();
-    expect(and.find((c) => "branch_id" in c || "OR" in c)).toBeUndefined();
+    expect(
+      and.find(
+        (c) =>
+          "branch_id" in c ||
+          ("OR" in c &&
+            (c.OR as Array<Record<string, unknown>>).some((item) => "branch_id" in item)),
+      ),
+    ).toBeUndefined();
   });
 
   it("BRANCH_ADMIN со старым фильтром своего филиала → общее расписание", async () => {
@@ -243,9 +258,10 @@ describe("eventRouter.list — RBAC по филиалам", () => {
       branch_id: "branch_chel",
     });
     const and = await collectWhere(sess);
-    const or = and.find((c) => "OR" in c && Array.isArray((c as { OR: unknown[] }).OR)) as
-      | { OR: Array<Record<string, unknown>> }
-      | undefined;
+    const or = and.find(
+      (c) =>
+        "OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "branch_id" in item),
+    ) as { OR: Array<Record<string, unknown>> } | undefined;
     expect(or?.OR).toEqual([{ branch_id: "branch_chel" }, { branch_id: null }]);
   });
 });

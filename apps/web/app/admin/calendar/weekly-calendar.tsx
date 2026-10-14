@@ -50,7 +50,10 @@ export function WeeklyCalendar({
       const start = event.is_all_day ? new Date(`${dayKey(day)}T00:00:00Z`) : new Date(day);
       if (!event.is_all_day) start.setHours(0, 0, 0, 0);
       const next = event.is_all_day ? new Date(start.getTime() + 86400000) : addDays(start, 1);
-      if (event.start_at < next && event.end_at > start) {
+      if (
+        event.start_at < next &&
+        (event.end_at ? event.end_at > start : event.start_at >= start)
+      ) {
         const key = dayKey(day);
         eventsByDay.set(key, [...(eventsByDay.get(key) ?? []), event]);
       }
@@ -134,7 +137,9 @@ export function WeeklyCalendar({
                       <span className="block font-semibold text-brand-primary">
                         {event.is_all_day
                           ? "Весь день"
-                          : `${formatTime(event.start_at)} — ${formatTime(event.end_at)}`}
+                          : event.end_at
+                            ? `${formatTime(event.start_at)} — ${formatTime(event.end_at)}`
+                            : formatTime(event.start_at)}
                       </span>
                       <span className="mt-1 block break-words text-foreground">{event.title}</span>
                       <span className="mt-1 block break-words text-foreground/60">

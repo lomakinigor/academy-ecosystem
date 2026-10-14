@@ -178,8 +178,13 @@ export function EventBatchModal({
         : new Date(toDatetimeLocal(ev.date, ev.start_time));
       const end = ev.is_all_day
         ? dateOnlyEnd(ev.end_date ?? ev.date)
-        : new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time));
-      return !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start;
+        : ev.end_time
+          ? new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time))
+          : null;
+      return (
+        !Number.isFinite(start.getTime()) ||
+        Boolean(end && (!Number.isFinite(end.getTime()) || end <= start))
+      );
     });
     if (invalidRange) {
       setCreateError("Проверьте даты и время начала и окончания выбранных мероприятий");
@@ -219,7 +224,9 @@ export function EventBatchModal({
             : new Date(toDatetimeLocal(ev.date, ev.start_time)),
           end_at: ev.is_all_day
             ? dateOnlyEnd(ev.end_date ?? ev.date)
-            : new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time)),
+            : ev.end_time
+              ? new Date(toDatetimeLocal(ev.end_date ?? ev.date, ev.end_time))
+              : null,
           is_all_day: ev.is_all_day ?? false,
           venue: ev.venue ?? undefined,
           speaker_id: speakerId,

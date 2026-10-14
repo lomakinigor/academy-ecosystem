@@ -1,0 +1,3 @@
+{
+  "buildCommand": "pnpm --filter @academy/db exec prisma db execute --file prisma/sql/optional-event-end.sql --schema prisma/schema.prisma && pnpm build"
+}

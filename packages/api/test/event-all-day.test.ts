@@ -14,6 +14,12 @@ const input = {
   venue: "На поселении",
 };
 describe("Мероприятие без времени", () => {
+  it("принимает неизвестное окончание обычного мероприятия", () => {
+    expect(
+      eventCreateSchema.parse({ ...input, is_all_day: false, end_at: null }).end_at,
+    ).toBeNull();
+    expect(eventUpdateSchema.parse({ id: input.speaker_id, end_at: null }).end_at).toBeNull();
+  });
   it("сохраняет краткое имя, ограничивает длину и позволяет сбросить его", () => {
     expect(eventCreateSchema.parse({ ...input, calendar_title: "Велес" }).calendar_title).toBe(
       "Велес",
@@ -38,7 +44,10 @@ describe("Мероприятие без времени", () => {
     const from = new Date("2026-10-16T00:00Z");
     const to = new Date("2026-10-17T23:59Z");
     expect(buildEventListWhere({ from, to }, { mode: "global" })).toMatchObject({
-      AND: expect.arrayContaining([{ end_at: { gt: from } }, { start_at: { lte: to } }]),
+      AND: expect.arrayContaining([
+        { OR: [{ end_at: { gt: from } }, { end_at: null, start_at: { gte: from } }] },
+        { start_at: { lte: to } },
+      ]),
     });
   });
   it("создаёт одну DB запись с общими датами", async () => {
@@ -66,5 +75,7 @@ describe("Мероприятие без времени", () => {
         end_at: input.end_at,
       }),
     });
+    await caller.event.create({ ...input, type: "SEMINAR", is_all_day: false, end_at: undefined });
+    expect(create).toHaveBeenLastCalledWith({ data: expect.objectContaining({ end_at: null }) });
   });
 });

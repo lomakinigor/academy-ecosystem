@@ -18,7 +18,7 @@ export const eventStatusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "COMPLETE
 
 export const pricingTypeSchema = z.enum(["FIXED", "DONATION", "FREE"]);
 
-export const isDateOnlyRange = (start: Date, end: Date | undefined) =>
+export const isDateOnlyRange = (start: Date, end: Date | null | undefined) =>
   Boolean(end && end > start && start.getTime() % 86400000 === 0 && end.getTime() % 86400000 === 0);
 
 export const eventCreateSchema = z
@@ -29,8 +29,7 @@ export const eventCreateSchema = z
     type: eventTypeSchema,
     status: eventStatusSchema.default("PLANNED"),
     start_at: z.coerce.date(),
-    // end_at опционален — если не передан, роутер ставит start_at + 2 часа
-    end_at: z.coerce.date().optional(),
+    end_at: z.coerce.date().nullable().optional(),
     is_all_day: z.boolean().default(false),
     speaker_id: cuidSchema,
     branch_id: cuidSchema.nullable().optional(),
@@ -61,12 +60,12 @@ export const eventConflictInputSchema = z
   .object({
     id: cuidSchema.optional(),
     start_at: z.coerce.date(),
-    end_at: z.coerce.date(),
+    end_at: z.coerce.date().nullable(),
     speaker_id: cuidSchema,
     venue: z.string().max(500).nullable().optional(),
     branch_id: cuidSchema.nullable().optional(),
   })
-  .refine((data) => data.end_at > data.start_at, {
+  .refine((data) => !data.end_at || data.end_at > data.start_at, {
     message: "Время окончания должно быть позже времени начала",
     path: ["end_at"],
   });
@@ -128,7 +127,7 @@ export const eventUpdateSchema = z.object({
   type: eventTypeSchema.optional(),
   status: eventStatusSchema.optional(),
   start_at: z.coerce.date().optional(),
-  end_at: z.coerce.date().optional(),
+  end_at: z.coerce.date().nullable().optional(),
   is_all_day: z.boolean().optional(),
   speaker_id: cuidSchema.optional(),
   branch_id: cuidSchema.nullable().optional(),

@@ -80,6 +80,23 @@ const initialEvent: EventFormInitial = {
 };
 
 describe("EventFormModal — режимы создания и редактирования", () => {
+  it("создаёт форму с пустым необязательным окончанием", () => {
+    mockEmptyQueries();
+    render(
+      <TRPCProvider>
+        <EventFormModal
+          open
+          onOpenChange={() => {}}
+          branches={[]}
+          canEditNullBranch
+          defaultBranchId={null}
+        />
+      </TRPCProvider>,
+    );
+    const end = document.querySelectorAll('input[type="datetime-local"]')[1];
+    expect(end).toHaveValue("");
+    expect(end).not.toBeRequired();
+  });
   it("при создании заголовок «Новое событие»", () => {
     mockEmptyQueries();
     render(

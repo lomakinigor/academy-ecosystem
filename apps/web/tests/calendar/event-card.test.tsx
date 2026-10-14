@@ -24,6 +24,16 @@ const baseEvent = (overrides: Partial<EventCardData> = {}): EventCardData => ({
 });
 
 describe("EventCard", () => {
+  it("без окончания не пишет лишнюю подпись или тире", () => {
+    render(<EventCard event={baseEvent({ end_at: null })} />);
+    const time = new Date("2026-05-04T07:00:00Z").toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    expect(screen.getAllByText(time).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/не указано/i)).toBeNull();
+    expect(screen.queryByText(new RegExp(`${time}–`))).toBeNull();
+  });
   it("рендерит заголовок, спикера, филиал и описание", () => {
     render(<EventCard event={baseEvent()} />);
     expect(screen.getByText("Храм-3: день 1")).toBeInTheDocument();

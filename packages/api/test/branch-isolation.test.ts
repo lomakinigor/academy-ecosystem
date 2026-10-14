@@ -76,7 +76,8 @@ describe("buildEventListWhere — branch isolation", () => {
   it("scoped без явного фильтра → OR(свой, null)", () => {
     const where = buildEventListWhere(range, scopedMsk);
     const orClause = (where.AND as Array<Record<string, unknown>>).find(
-      (c) => "OR" in c && Array.isArray((c as { OR: unknown[] }).OR),
+      (c) =>
+        "OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "branch_id" in item),
     ) as { OR: Array<Record<string, unknown>> } | undefined;
     expect(orClause).toBeDefined();
     expect(orClause?.OR).toEqual([{ branch_id: "branch_msk" }, { branch_id: null }]);
@@ -144,7 +145,9 @@ describe("buildEventListWhere — пользовательские фильтр�
 
   it("search → OR по title и description (insensitive)", () => {
     const where = buildEventListWhere({ ...range, search: "храм" }, global);
-    const or = findClause(where, "OR") as { OR: Array<Record<string, unknown>> };
+    const or = (where.AND as Array<Record<string, unknown>>).find(
+      (c) => "OR" in c && (c.OR as Array<Record<string, unknown>>).some((item) => "title" in item),
+    ) as { OR: Array<Record<string, unknown>> };
     expect(or.OR).toEqual([
       { title: { contains: "храм", mode: "insensitive" } },
       { description: { contains: "храм", mode: "insensitive" } },
@@ -154,7 +157,10 @@ describe("buildEventListWhere — пользовательские фильтр�
   it("from/to всегда применяются", () => {
     const where = buildEventListWhere(range, global);
     expect(where.AND).toEqual(
-      expect.arrayContaining([{ end_at: { gt: range.from } }, { start_at: { lte: range.to } }]),
+      expect.arrayContaining([
+        { OR: [{ end_at: { gt: range.from } }, { end_at: null, start_at: { gte: range.from } }] },
+        { start_at: { lte: range.to } },
+      ]),
     );
   });
 });

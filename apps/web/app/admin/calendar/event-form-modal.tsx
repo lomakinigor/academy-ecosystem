@@ -56,7 +56,7 @@ export interface EventFormInitial {
   type: EventTypeValue;
   status: EventStatus;
   start_at: Date;
-  end_at: Date;
+  end_at: Date | null;
   is_all_day?: boolean;
   branch_id: string | null;
   speaker_id: string;
@@ -162,9 +162,9 @@ export function EventFormModal({
   const [tagsRaw, setTagsRaw] = useState("");
 
   const startDate = allDay ? dateOnlyStart(start) : fromLocalInput(start);
-  const endDate = allDay ? dateOnlyEnd(end) : fromLocalInput(end);
+  const endDate = allDay ? dateOnlyEnd(end || start) : end ? fromLocalInput(end) : null;
   const calendarDate = allDay ? new Date(`${start.slice(0, 10)}T12:00`) : startDate;
-  const validRange = Number.isFinite(startDate.getTime()) && endDate > startDate;
+  const validRange = Number.isFinite(startDate.getTime()) && (!endDate || endDate > startDate);
   const conflictInput = {
     id: initial?.id,
     start_at: startDate,
@@ -200,8 +200,10 @@ export function EventFormModal({
       );
       setEnd(
         initial.is_all_day
-          ? `${lastEventDate(initial.end_at)}T00:00`
-          : toLocalInput(initial.end_at),
+          ? `${lastEventDate(initial.end_at ?? dateOnlyEnd(initial.start_at.toISOString()))}T00:00`
+          : initial.end_at
+            ? toLocalInput(initial.end_at)
+            : "",
       );
       setBranchId(initial.branch_id ?? "");
       setSpeakerId(initial.speaker_id);
@@ -224,7 +226,7 @@ export function EventFormModal({
         now.setFullYear(year!, month! - 1, day!);
       }
       setStart(toLocalInput(now));
-      setEnd(toLocalInput(new Date(now.getTime() + 2 * 60 * 60 * 1000)));
+      setEnd("");
       setBranchId(defaultBranchId ?? "");
       setSpeakerId("");
       setFormat("OFFLINE");
@@ -291,7 +293,9 @@ export function EventFormModal({
 
     setCheckingConflicts(true);
     try {
-      const currentConflicts = await utils.event.conflicts.fetch(conflictInput, { staleTime: 0 });
+      const currentConflicts = endDate
+        ? await utils.event.conflicts.fetch(conflictInput, { staleTime: 0 })
+        : [];
       if (
         currentConflicts.length > 0 &&
         !window.confirm(
@@ -482,9 +486,9 @@ export function EventFormModal({
             <Field label="Окончание">
               <Input
                 type={allDay ? "date" : "datetime-local"}
-                value={allDay ? end.slice(0, 10) : end}
+                value={allDay ? (end || start).slice(0, 10) : end}
                 onChange={(e) => setEnd(allDay ? `${e.target.value}T00:00` : e.target.value)}
-                required
+                required={allDay}
               />
             </Field>
 

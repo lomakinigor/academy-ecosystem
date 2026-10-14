@@ -321,6 +321,15 @@ describe("event.update — RBAC", () => {
       data: { start_at, end_at },
     });
   });
+  it("позволяет очистить окончание обычного события", async () => {
+    const prisma = makePrisma();
+    const caller = appRouter.createCaller(makeCtx(session(), prisma));
+    await caller.event.update({ id: baseEvent.id, end_at: null });
+    expect(prisma.event.update).toHaveBeenCalledWith({
+      where: { id: baseEvent.id },
+      data: { end_at: null },
+    });
+  });
   it("BRANCH_ADMIN может обновлять событие своего филиала", async () => {
     const prisma = makePrisma();
     (prisma.event.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({

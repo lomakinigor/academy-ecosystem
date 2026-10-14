@@ -112,7 +112,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
                 <div className="text-xs uppercase tracking-wider text-foreground/50">Дата</div>
                 <div className="font-medium text-brand-primary">
                   {event.is_all_day
-                    ? dateOnlyLabel(event.start_at, event.end_at)
+                    ? dateOnlyLabel(event.start_at, event.end_at ?? event.start_at)
                     : formatDate(event.start_at)}
                 </div>
               </div>
@@ -122,7 +122,9 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
               <span className="font-medium text-brand-primary">
                 {event.is_all_day
                   ? "Весь день"
-                  : `${formatTime(event.start_at)}–${formatTime(event.end_at)}`}
+                  : event.end_at
+                    ? `${formatTime(event.start_at)}–${formatTime(event.end_at)}`
+                    : formatTime(event.start_at)}
               </span>
             </div>
             <div className="flex items-center gap-2">

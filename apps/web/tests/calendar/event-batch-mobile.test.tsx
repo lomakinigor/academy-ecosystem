@@ -61,6 +61,14 @@ async function review() {
 }
 
 describe("Мобильная проверка пакетного ввода", () => {
+  it("сохраняет начало без обязательного окончания", async () => {
+    await review();
+    await userEvent.clear(screen.getByLabelText("Окончание мероприятия 1"));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Включить мероприятие 2" }));
+    await userEvent.click(screen.getByRole("button", { name: "Создать 1 событие" }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ end_at: null }));
+  });
   it("проверяет и сохраняет многодневный диапазон без часов одной записью", async () => {
     vi.stubGlobal(
       "fetch",

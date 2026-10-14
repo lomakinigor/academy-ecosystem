@@ -28,7 +28,7 @@ export const buildEventListWhere = (
 ): Prisma.EventWhereInput => {
   const and: Prisma.EventWhereInput[] = [
     {
-      end_at: { gt: input.from },
+      OR: [{ end_at: { gt: input.from } }, { end_at: null, start_at: { gte: input.from } }],
     },
     {
       // Событие пересекает диапазон, если start_at <= to.
@@ -89,7 +89,7 @@ type ConflictComparableEvent = {
   id: string;
   title: string;
   start_at: Date;
-  end_at: Date;
+  end_at: Date | null;
   speaker_id: string;
   venue: string | null;
 };
@@ -103,7 +103,7 @@ export type EventConflict = {
   id: string;
   title: string;
   start_at: Date;
-  end_at: Date;
+  end_at: Date | null;
   reasons: Array<"SPEAKER" | "VENUE">;
 };
 
@@ -120,13 +120,15 @@ export const findEventConflicts = (
   candidate: EventConflictCandidate,
   events: ConflictComparableEvent[],
 ): EventConflict[] => {
+  if (!candidate.end_at) return [];
   const candidateVenue = normalizeVenue(candidate.venue);
 
   return events.flatMap((event) => {
     if (
       event.id === candidate.id ||
+      !event.end_at ||
       candidate.start_at >= event.end_at ||
-      candidate.end_at <= event.start_at
+      candidate.end_at! <= event.start_at
     ) {
       return [];
     }
@@ -210,7 +212,7 @@ const PUBLIC_VISIBLE_STATUSES = ["PLANNED", "ACTIVE"] as const;
 export const eventRouter = router({
   publicList: publicProcedure.input(eventPublicListInputSchema).query(async ({ ctx, input }) => {
     const and: Prisma.EventWhereInput[] = [
-      { end_at: { gt: input.from } },
+      { OR: [{ end_at: { gt: input.from } }, { end_at: null, start_at: { gte: input.from } }] },
       { start_at: { lte: input.to } },
       { status: { in: [...PUBLIC_VISIBLE_STATUSES] } },
     ];
@@ -340,6 +342,7 @@ export const eventRouter = router({
       const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
       assertBranchWrite(ctx.branchScope, branchId);
 
+      if (!input.end_at) return [];
       const events = await ctx.prisma.event.findMany({
         where: {
           id: input.id ? { not: input.id } : undefined,
@@ -364,7 +367,7 @@ export const eventRouter = router({
     const branchId = resolveBranchId(ctx.branchScope, input.branch_id);
     assertBranchWrite(ctx.branchScope, branchId);
 
-    const end_at = input.end_at ?? new Date(input.start_at.getTime() + 2 * 60 * 60 * 1000);
+    const end_at = input.end_at ?? null;
 
     const created = await ctx.prisma.event.create({
       data: {
@@ -417,8 +420,8 @@ export const eventRouter = router({
       input.is_all_day !== undefined
     ) {
       const start = input.start_at ?? existing.start_at;
-      const end = input.end_at ?? existing.end_at;
-      if (end <= start) {
+      const end = input.end_at === undefined ? existing.end_at : input.end_at;
+      if (end && end <= start) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Время окончания должно быть позже времени начала",

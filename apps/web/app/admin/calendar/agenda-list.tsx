@@ -55,7 +55,7 @@ export function AgendaList({ events, onEventClick, hrefBuilder, from, to }: Agen
   for (const ev of events) {
     const first = isoDay(ev.start_at, ev.is_all_day);
     const last = isoDay(
-      new Date(Math.max(ev.start_at.getTime(), ev.end_at.getTime() - 1)),
+      new Date(Math.max(ev.start_at.getTime(), (ev.end_at ?? ev.start_at).getTime() - 1)),
       ev.is_all_day,
     );
     const lower = from ? isoDay(from) : first;

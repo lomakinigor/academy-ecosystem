@@ -178,7 +178,7 @@ model Event {
   type             EventType
   status           EventStatus @default(DRAFT)
   start_at         DateTime
-  end_at           DateTime
+  end_at           DateTime?
   is_all_day       Boolean     @default(false)
   speaker_id       String
   speaker          User        @relation("EventSpeaker", fields: [speaker_id], references: [id])
