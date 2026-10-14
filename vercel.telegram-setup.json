@@ -1,0 +1,3 @@
+{
+  "buildCommand": "node scripts/configure-telegram.cjs && pnpm build"
+}
