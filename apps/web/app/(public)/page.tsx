@@ -65,8 +65,7 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
           РАСПИСАНИЕ АКАДЕМИИ
         </h1>
         <p className="mt-1 text-sm text-foreground/70">
-          Публичный календарь событий — семинары, практики, ритриты и курсы. Чтобы записаться,
-          откройте мероприятие и нажмите «Записаться».
+          Чтобы записаться, откройте мероприятие и нажмите «Записаться»
         </p>
       </header>
 
