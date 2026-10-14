@@ -91,11 +91,15 @@ export function AgendaList({
           <section key={iso} aria-labelledby={`day-${iso}`}>
             <h2
               id={`day-${iso}`}
-              className="font-heading text-sm font-semibold uppercase tracking-wider text-foreground/60"
+              className={
+                compact
+                  ? "sr-only"
+                  : "font-heading text-sm font-semibold uppercase tracking-wider text-foreground/60"
+              }
             >
               {dayLabel(iso)}
             </h2>
-            <div className={compact ? "mt-2 space-y-2" : "mt-3 space-y-3"}>
+            <div className={compact ? "space-y-2" : "mt-3 space-y-3"}>
               {dayEvents.map((ev) => (
                 <EventCard
                   key={ev.id}

@@ -111,6 +111,10 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
   }`;
 
   if (compact) {
+    const weekday = displayDate.toLocaleDateString("ru-RU", {
+      weekday: "short",
+      timeZone: displayDay || event.is_all_day ? "UTC" : "Asia/Yekaterinburg",
+    });
     const compactTime = event.is_all_day
       ? "Весь день"
       : endTime
@@ -122,7 +126,10 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
             <div className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-brand-warm text-brand-primary">
-              <span className="font-heading text-xl font-bold leading-none">{dayNum}</span>
+              <span className="flex items-baseline gap-1 font-heading font-bold leading-none">
+                <span className="text-xl">{dayNum}</span>
+                <span className="text-[10px] capitalize">{weekday}</span>
+              </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
                 {monthLabel}
               </span>
