@@ -48,6 +48,8 @@ describe("Рабочий месяц администратора", () => {
     expect(screen.queryByText("На поселении")).toBeNull();
     expect(screen.getByRole("group", { name: "Дни календаря" })).toHaveClass("grid-cols-7");
     const cells = screen.getByRole("group", { name: "Дни календаря" }).children;
+    expect(cells[2]).toHaveClass("h-20");
+    expect(cells[3]).toHaveClass("h-20");
     expect(cells[0]).toHaveAttribute("aria-hidden", "true");
     expect(cells[1]).toHaveAttribute("aria-hidden", "true");
     expect(cells[2]).toHaveTextContent("14");

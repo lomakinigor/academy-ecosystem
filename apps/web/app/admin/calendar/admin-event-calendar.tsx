@@ -88,34 +88,37 @@ export function AdminEventCalendar({
               key={day}
               aria-current={day === academyDay() ? "date" : undefined}
               data-has-events={occupied ? "true" : "false"}
-              className={`flex min-h-14 min-w-0 flex-col items-stretch gap-1 rounded-lg border p-0.5 text-sm sm:min-h-16 ${occupied ? "border-brand-accent/50 bg-brand-accent/20" : "border-border bg-background"} ${day === academyDay() ? "ring-2 ring-inset ring-brand-accent" : ""}`}
+              className={`flex h-20 min-w-0 flex-col items-stretch overflow-hidden rounded-lg border p-0.5 text-sm ${occupied ? "border-brand-accent/50 bg-brand-accent/20" : "border-border bg-background"} ${day === academyDay() ? "ring-2 ring-inset ring-brand-accent" : ""}`}
             >
               <button
                 type="button"
                 aria-label={`${dayLabel(day)} — создать мероприятие`}
                 onClick={() => onCreate(day)}
-                className={`min-h-7 font-heading font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent ${weekday === 0 || weekday === 6 ? "text-brand-earth" : "text-brand-primary"}`}
+                className={`h-6 shrink-0 font-heading font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent ${weekday === 0 || weekday === 6 ? "text-brand-earth" : "text-brand-primary"}`}
               >
                 {Number(day.slice(8))}
               </button>
-              {daily.map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  title={event.title}
-                  aria-label={`${event.title} — ${dayLabel(day)}, редактировать`}
-                  onClick={() => onEdit(event)}
-                  className="min-h-11 w-full min-w-0 truncate rounded bg-brand-accent/20 px-0.5 text-[10px] font-medium text-brand-primary hover:bg-brand-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent sm:text-xs"
-                >
-                  {calendarTitle(event.title, event.calendar_title)}
-                </button>
-              ))}
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+                {daily.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    title={event.title}
+                    aria-label={`${event.title} — ${dayLabel(day)}, редактировать`}
+                    onClick={() => onEdit(event)}
+                    className="block h-6 w-full min-w-0 truncate rounded px-0.5 text-[10px] leading-6 font-medium text-brand-primary hover:bg-brand-accent/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent sm:text-xs"
+                  >
+                    {calendarTitle(event.title, event.calendar_title)}
+                  </button>
+                ))}
+              </div>
             </div>
           );
         })}
       </div>
       <p className="mt-3 text-xs text-foreground/60">
-        Название — редактировать. Число даты — создать мероприятие.
+        Название — редактировать. Число даты — создать. Много событий — прокрутите список внутри
+        дня.
       </p>
     </section>
   );
