@@ -35,4 +35,5 @@ export interface SessionUser {
   academic_level: AcademicLevel;
   branch_id: string | null;
   is_speaker: boolean;
+  is_owner?: boolean;
 }

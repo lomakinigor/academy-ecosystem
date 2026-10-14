@@ -1,0 +1,3 @@
+{
+  "buildCommand": "pnpm --filter @academy/db exec node scripts/bootstrap-owners.cjs && pnpm build"
+}

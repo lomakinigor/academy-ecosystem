@@ -8,6 +8,7 @@ import { prisma } from "@academy/db";
 import { z } from "zod";
 
 import { signIn } from "@/auth";
+import { prepareDeviceSession } from "@/auth/device-session";
 
 const signupSchema = z.object({
   email: z.string().email("Некорректный email").max(254),
@@ -116,6 +117,7 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
 
   try {
     await signIn("credentials", {
+      ...(await prepareDeviceSession(formData.get("forgetDevice") !== "on")),
       email,
       password: parsed.data.password,
       redirect: false,

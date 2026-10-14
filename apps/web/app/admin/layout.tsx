@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { isConfiguredOwner } from "@academy/api";
+import { isOwner } from "@academy/api";
 
 import { requireRole } from "@/lib/auth/helpers";
 import { SystemRole } from "@/lib/auth/types";
@@ -37,7 +37,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               <div className="font-medium text-brand-primary">{user.name}</div>
               <div className="text-xs text-foreground/60">{user.email}</div>
             </div>
-            {isConfiguredOwner(user.id) ? (
+            {isOwner(user) ? (
               <span className="rounded-full border border-brand-accent/40 bg-brand-accent/10 px-3 py-1 text-xs font-semibold text-brand-primary">
                 Владелец
               </span>

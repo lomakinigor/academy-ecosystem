@@ -9,6 +9,7 @@ vi.mock("@/lib/trpc/client", () => ({
       setAdmin: {
         useMutation: () => ({ mutate, isLoading: false }),
       },
+      setOwner: { useMutation: () => ({ mutate: vi.fn(), isLoading: false }) },
     },
   },
 }));
@@ -19,14 +20,21 @@ describe("Управление администраторами", () => {
     render(
       <AdministratorsContent
         ownerId="owner1"
+        viewerId="coowner1"
         accounts={[
-          { id: "owner1", name: "Владелец", email: "owner@example.test", system_role: "PRESIDENT" },
+          {
+            id: "owner1",
+            name: "Владелец",
+            email: "owner@example.test",
+            system_role: "PRESIDENT",
+            is_owner: true,
+          },
           { id: "user1", name: "Клиент", email: "user@example.test", system_role: "STUDENT" },
           { id: "admin1", name: "Админ", email: "admin@example.test", system_role: "BRANCH_ADMIN" },
         ]}
       />,
     );
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getAllByRole("button")).toHaveLength(4);
     await userEvent.click(screen.getByRole("button", { name: "Назначить администратором" }));
     expect(mutate).toHaveBeenCalledWith({ id: "user1", isAdmin: true });
     await userEvent.click(screen.getByRole("button", { name: "Снять права администратора" }));

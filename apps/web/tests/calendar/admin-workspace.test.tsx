@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/helpers", () => ({
     academic_level: "LISTENER",
   }),
 }));
-vi.mock("@academy/api", () => ({ isConfiguredOwner: () => state.owner }));
+vi.mock("@academy/api", () => ({ isOwner: () => state.owner }));
 vi.mock("@/app/admin/logout-button", () => ({ LogoutButton: () => null }));
 vi.mock("@/app/admin/calendar/event-form-modal", () => ({
   EventFormModal: ({ open }: { open: boolean }) => (open ? <div>Ручная форма</div> : null),

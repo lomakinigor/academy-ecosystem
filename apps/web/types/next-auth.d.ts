@@ -16,6 +16,8 @@ declare module "next-auth" {
   }
 
   interface User {
+    remember_device?: boolean;
+    browser_session_id?: string;
     id: string;
     name: string;
     email: string;
@@ -28,6 +30,9 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
+    remember_device?: boolean;
+    browser_session_id?: string;
+    valid_until?: number;
     id: string;
     system_role: SystemRole;
     academic_level: AcademicLevel;

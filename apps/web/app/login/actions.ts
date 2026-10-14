@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { signIn } from "@/auth";
+import { prepareDeviceSession } from "@/auth/device-session";
 import { SystemRole, SYSTEM_ROLE_RANK } from "@/lib/auth/types";
 
 const loginSchema = z.object({
@@ -38,6 +39,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 
   try {
     await signIn("credentials", {
+      ...(await prepareDeviceSession(formData.get("forgetDevice") !== "on")),
       email: parsed.data.email,
       password: parsed.data.password,
       redirect: false,

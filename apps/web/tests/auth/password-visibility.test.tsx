@@ -18,6 +18,14 @@ describe.each([
   ["вход", LoginForm],
   ["регистрация", SignupForm],
 ] as const)("Пароль: %s", (_name, Form) => {
+  it("позволяет выбрать чужое устройство, личное запоминается по умолчанию", async () => {
+    render(<Form />);
+    const choice = screen.getByRole("checkbox", { name: "Не запоминать меня на этом устройстве" });
+    expect(choice).not.toBeChecked();
+    await userEvent.click(choice);
+    expect(choice).toBeChecked();
+    expect(screen.getByText(/90 дней/)).toBeInTheDocument();
+  });
   it("переключает видимость, сохраняя значение и не отправляя форму", async () => {
     render(<Form />);
     const input = screen.getByLabelText("Пароль");

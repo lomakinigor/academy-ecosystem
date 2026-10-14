@@ -11,6 +11,12 @@ const user: SessionUser = {
   is_speaker: false,
 };
 describe("Текущие права вместо старых JWT claims", () => {
+  it("снятый владелец не сохраняет права из старой сессии", async () => {
+    const db = { user: { findFirst: vi.fn().mockResolvedValue({ ...user, is_owner: false }) } };
+    const current = await refreshSessionUser({ ...user, is_owner: true }, db as never);
+    expect(current?.is_owner).toBe(false);
+    expect(db.user.findFirst.mock.calls[0]![0].select.is_owner).toBe(true);
+  });
   it("использует актуальную роль STUDENT из базы после снятия админа", async () => {
     const db = {
       user: { findFirst: vi.fn().mockResolvedValue({ ...user, system_role: "STUDENT" }) },

@@ -13,6 +13,7 @@ export interface SessionUser {
   academic_level: string;
   branch_id: string | null;
   is_speaker: boolean;
+  is_owner?: boolean;
 }
 
 export interface CreateContextOptions {
@@ -39,6 +40,7 @@ export const refreshSessionUser = async (
       academic_level: true,
       branch_id: true,
       is_speaker: true,
+      is_owner: true,
     },
   });
   return current?.email ? { ...current, email: current.email } : null;

@@ -110,6 +110,7 @@ model User {
   system_role    SystemRole    @default(STUDENT)
   academic_level AcademicLevel @default(LISTENER)
   is_speaker     Boolean       @default(false)
+  is_owner       Boolean       @default(false)
   branch_id      String?
   branch         Branch?       @relation(fields: [branch_id], references: [id])
   referral_code  String?       @unique

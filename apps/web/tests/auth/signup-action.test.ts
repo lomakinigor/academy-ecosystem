@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/auth/device-session", () => ({
+  prepareDeviceSession: vi.fn(async (remember: boolean) => ({ remember_device: String(remember) })),
+}));
 
 const prismaMock = vi.hoisted(() => ({
   user: {

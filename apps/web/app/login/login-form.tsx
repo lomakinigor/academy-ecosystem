@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { useState } from "react";
 
 import { Button, Input } from "@academy/ui";
+import { DeviceRememberChoice } from "@/components/auth/device-remember-choice";
 
 import { loginAction, type LoginState } from "./actions";
 
@@ -88,6 +89,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
         </p>
       ) : null}
 
+      <DeviceRememberChoice />
       <SubmitButton />
     </form>
   );

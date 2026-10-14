@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthError } from "next-auth";
+vi.mock("@/auth/device-session", () => ({
+  prepareDeviceSession: vi.fn(async (remember: boolean) => ({ remember_device: String(remember) })),
+}));
 
 vi.mock("@/auth", () => ({
   signIn: vi.fn(),
@@ -65,6 +68,18 @@ describe("loginAction — Zod validation", () => {
 });
 
 describe("loginAction — sign-in flow", () => {
+  it("передаёт режим чужого устройства в аутентификацию", async () => {
+    await expect(
+      loginAction(
+        {},
+        form({ email: "user@academy.ru", password: "validpass1", forgetDevice: "on" }),
+      ),
+    ).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(signInMock).toHaveBeenCalledWith(
+      "credentials",
+      expect.objectContaining({ remember_device: "false" }),
+    );
+  });
   it("returns a generic Russian error message on AuthError", async () => {
     signInMock.mockRejectedValueOnce(new CredentialsSignin());
     const result = await loginAction(
@@ -115,6 +130,7 @@ describe("loginAction — sign-in flow", () => {
       email: "user@academy.ru",
       password: "validpass1",
       redirect: false,
+      remember_device: "true",
     });
   });
 });
