@@ -1,10 +1,17 @@
 "use client";
 
-import { Button } from "@academy/ui";
+import { useState } from "react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@academy/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { EventCardData } from "./event-card";
 import { academyDay, dayLabel, rollingRange, shiftDay } from "@/lib/events/rolling-range";
-import { calendarTitle } from "@/lib/events/short-title";
 
 export function AdminEventCalendar({
   events,
@@ -19,6 +26,7 @@ export function AdminEventCalendar({
   onEdit: (event: EventCardData) => void;
   onCreate: (date: string) => void;
 }) {
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const range = rollingRange(start);
   const dailyEvents = (day: string) =>
     events
@@ -39,11 +47,11 @@ export function AdminEventCalendar({
   return (
     <section
       aria-label="Рабочий календарь на месяц"
-      className="mx-auto w-full max-w-2xl rounded-xl border border-border bg-card p-3 sm:p-5"
+      className="mx-auto w-full max-w-2xl rounded-xl border border-border bg-card p-2 sm:p-5"
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2 flex items-center justify-between gap-1">
         <div>
-          <h2 className="font-heading text-sm font-semibold sm:text-base">
+          <h2 className="font-heading text-xs font-semibold sm:text-base">
             {dayLabel(start)} — {dayLabel(range.end)}
           </h2>
           <p className="text-xs text-foreground/60">{events.length} мероприятий</p>
@@ -51,18 +59,22 @@ export function AdminEventCalendar({
         <div className="flex gap-1">
           <Button
             variant="outline"
-            className="min-h-11 min-w-11 px-2"
+            className="h-8 min-w-8 px-1 sm:min-h-11 sm:min-w-11"
             aria-label="Назад на неделю"
             onClick={() => change(shiftDay(start, -7))}
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="outline" className="min-h-11 px-3" onClick={() => change(academyDay())}>
+          <Button
+            variant="outline"
+            className="h-8 px-2 text-xs sm:min-h-11"
+            onClick={() => change(academyDay())}
+          >
             Сегодня
           </Button>
           <Button
             variant="outline"
-            className="min-h-11 min-w-11 px-2"
+            className="h-8 min-w-8 px-1 sm:min-h-11 sm:min-w-11"
             aria-label="Вперёд на неделю"
             onClick={() => change(shiftDay(start, 7))}
           >
@@ -86,42 +98,71 @@ export function AdminEventCalendar({
           const weekday = new Date(`${day}T00:00Z`).getUTCDay();
           const occupied = daily.length > 0;
           return (
-            <div
+            <button
+              type="button"
               key={day}
+              aria-label={`${dayLabel(day)} — ${daily.length} мероприятий${occupied ? "" : ", создать мероприятие"}`}
+              onClick={() =>
+                daily.length === 1
+                  ? onEdit(daily[0]!)
+                  : occupied
+                    ? setSelectedDay(day)
+                    : onCreate(day)
+              }
               aria-current={day === academyDay() ? "date" : undefined}
               data-has-events={occupied ? "true" : "false"}
-              className={`flex h-20 min-w-0 flex-col items-stretch overflow-hidden rounded-lg border p-0.5 text-sm ${occupied ? "border-brand-accent/50 bg-brand-accent/20" : "border-border bg-background"} ${day === academyDay() ? "ring-2 ring-inset ring-brand-accent" : ""}`}
+              className={`mx-auto flex aspect-square w-full max-w-11 min-w-0 flex-col items-center justify-center rounded-full border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent sm:max-w-14 ${occupied ? "border-brand-accent/50 bg-brand-accent/20" : "border-border bg-background"} ${day === academyDay() ? "ring-2 ring-inset ring-brand-accent" : ""}`}
             >
-              <button
-                type="button"
-                aria-label={`${dayLabel(day)} — создать мероприятие`}
-                onClick={() => onCreate(day)}
-                className={`h-6 shrink-0 font-heading font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent ${weekday === 0 || weekday === 6 ? "text-brand-earth" : "text-brand-primary"}`}
+              <span
+                className={`font-heading font-semibold leading-none ${weekday === 0 || weekday === 6 ? "text-brand-earth" : "text-brand-primary"}`}
               >
                 {Number(day.slice(8))}
-              </button>
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-                {daily.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    title={event.title}
-                    aria-label={`${event.title} — ${dayLabel(day)}, редактировать`}
-                    onClick={() => onEdit(event)}
-                    className="block h-5 w-full min-w-0 truncate rounded px-0.5 text-[10px] leading-5 font-medium text-brand-primary hover:bg-brand-accent/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-accent sm:text-xs"
-                  >
-                    {calendarTitle(event.title, event.calendar_title)}
-                  </button>
-                ))}
-              </div>
-            </div>
+              </span>
+              <span className="mt-0.5 text-[10px] leading-none text-foreground/60">
+                {daily.length}
+              </span>
+            </button>
           );
         })}
       </div>
-      <p className="mt-3 text-xs text-foreground/60">
-        Название — редактировать. Число даты — создать. Много событий — прокрутите список внутри
-        дня.
-      </p>
+      <Dialog
+        open={selectedDay !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDay(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedDay ? dayLabel(selectedDay) : "Мероприятия"}</DialogTitle>
+            <DialogDescription>Выберите мероприятие для редактирования.</DialogDescription>
+          </DialogHeader>
+          {selectedDay &&
+            dailyEvents(selectedDay).map((event) => (
+              <Button
+                key={event.id}
+                variant="outline"
+                className="h-auto min-h-11 justify-start whitespace-normal text-left"
+                onClick={() => {
+                  setSelectedDay(null);
+                  onEdit(event);
+                }}
+              >
+                {event.title}
+              </Button>
+            ))}
+          <Button
+            onClick={() => {
+              if (selectedDay) {
+                const day = selectedDay;
+                setSelectedDay(null);
+                onCreate(day);
+              }
+            }}
+          >
+            Создать мероприятие
+          </Button>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
