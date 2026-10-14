@@ -28,6 +28,10 @@ export interface EventCardData {
   branch: { id: string; name: string; city: string } | null;
   speaker: { id: string; name: string; avatar: string | null };
   bookings_count: number;
+  confirmed_count?: number;
+  waitlist_count?: number;
+  updated_at?: Date;
+  created_at?: Date;
 }
 
 interface EventCardProps {

@@ -222,7 +222,11 @@ export async function POST(req: Request) {
 
   const result: ParsedEvent[] = raw.map((ev: unknown) => {
     const e = ev as Record<string, unknown>;
-    const speakerName = (e.speaker_name as string | null) ?? null;
+    const proposedSpeaker = typeof e.speaker_name === "string" ? e.speaker_name.trim() : "";
+    const speakerName =
+      proposedSpeaker && normalize(text).includes(normalize(proposedSpeaker))
+        ? proposedSpeaker
+        : null;
     const branchCity = (e.branch_city as string | null) ?? null;
     const isAllDay = e.is_all_day === true || !e.start_time;
     return {

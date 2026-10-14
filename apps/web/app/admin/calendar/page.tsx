@@ -3,9 +3,9 @@ import { SystemRole } from "@/lib/auth/types";
 import { getServerCaller } from "@/lib/trpc/server";
 
 import { CalendarContent } from "./calendar-content";
-import { CalendarSidebar } from "./calendar-sidebar";
 import type { EventCardData } from "./event-card";
-import { parseCalendarFilters, type EventTypeValue } from "./filters";
+import type { EventTypeValue } from "./filters";
+import { parseAdminStart, rollingRange } from "@/lib/events/rolling-range";
 
 export const dynamic = "force-dynamic";
 
@@ -15,24 +15,16 @@ interface PageProps {
 
 export default async function CalendarPage({ searchParams }: PageProps) {
   await requireRole(SystemRole.BRANCH_ADMIN);
-  const filters = parseCalendarFilters(searchParams);
+  const range = rollingRange(parseAdminStart(searchParams.from));
   const caller = await getServerCaller();
 
   const eventsResult = await caller.event.list({
-    from: filters.from,
-    to: filters.to,
-    types: filters.types.length > 0 ? filters.types : undefined,
-    search: filters.search,
-    speaker_id: undefined,
-    is_online: filters.is_online,
+    from: range.from,
+    to: range.to,
   });
 
   const events: EventCardData[] = eventsResult.events
     .filter((ev) => ev.speaker != null)
-    .filter((ev) => {
-      if (!filters.speaker) return true;
-      return ev.speaker!.name.toLowerCase().includes(filters.speaker.toLowerCase());
-    })
     .map((ev) => ({
       id: ev.id,
       title: ev.title,
@@ -53,6 +45,10 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       branch: ev.branch,
       speaker: ev.speaker!,
       bookings_count: ev._count.bookings,
+      confirmed_count: ev.confirmed_count,
+      waitlist_count: ev.waitlist_count,
+      updated_at: ev.updatedAt,
+      created_at: ev.createdAt,
     }));
 
   // Все кто прошли requireRole(BRANCH_ADMIN) могут создавать события
@@ -62,16 +58,14 @@ export default async function CalendarPage({ searchParams }: PageProps) {
     <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-6">
         <h1 className="font-heading text-3xl font-bold tracking-wide text-brand-primary sm:text-4xl">
-          РАСПИСАНИЕ
+          УПРАВЛЕНИЕ МЕРОПРИЯТИЯМИ
         </h1>
         <p className="mt-1 text-sm text-foreground/70">
-          Все события академии — фильтруйте по периоду и направлениям.
+          Создание, редактирование и контроль мероприятий Академии.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <CalendarSidebar branches={[]} total={events.length} />
-
+      <div>
         <div>
           <CalendarContent
             events={events}
@@ -79,7 +73,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
             canAuthor={canAuthor}
             canEditNullBranch={true}
             defaultBranchId={null}
-            initialDate={filters.from}
+            initialDate={range.from}
           />
         </div>
       </div>

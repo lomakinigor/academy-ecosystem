@@ -18,6 +18,40 @@ beforeEach(() => {
 });
 
 describe("Пакетное распознавание: бюджет ответа", () => {
+  it("сбрасывает придуманного спикера, которого нет в исходном тексте", async () => {
+    mock.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                tool_calls: [
+                  {
+                    function: {
+                      name: "create_events",
+                      arguments: JSON.stringify({
+                        events: [
+                          {
+                            title: "Семинар",
+                            speaker_name: "Новоселова Татьяна",
+                            date: "2026-10-15",
+                            is_all_day: true,
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const data = await (await POST(request())).json();
+    expect(data.events[0].speaker_name).toBeNull();
+    expect(data.events[0].speaker_id).toBeNull();
+  });
   it("сохраняет три дня, место и две цены без выдуманных часов", async () => {
     mock.fetch.mockResolvedValue(
       new Response(

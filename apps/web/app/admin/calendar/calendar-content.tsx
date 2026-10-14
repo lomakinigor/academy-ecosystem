@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@academy/ui";
@@ -9,7 +9,8 @@ import { Button } from "@academy/ui";
 import type { EventCardData } from "./event-card";
 import { EventBatchModal } from "./event-batch-modal";
 import { EventFormModal, type EventFormInitial } from "./event-form-modal";
-import { startOfWeekMonday, WeeklyCalendar } from "./weekly-calendar";
+import { AdminEventCalendar } from "./admin-event-calendar";
+import { academyDay } from "@/lib/events/rolling-range";
 
 interface BranchOption {
   id: string;
@@ -45,6 +46,8 @@ const fromCard = (e: EventCardData): EventFormInitial => ({
   pricing_note: e.pricing_note,
   tags: e.tags,
   max_participants: e.max_participants,
+  created_at: e.created_at,
+  updated_at: e.updated_at,
 });
 
 /**
@@ -61,32 +64,23 @@ export function CalendarContent({
 }: CalendarContentProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
   const [initial, setInitial] = useState<EventFormInitial | undefined>();
-  const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(initialDate));
+  const [startDay, setStartDay] = useState(() => academyDay(initialDate));
+  const [createDate, setCreateDate] = useState<string>();
 
   useEffect(() => {
-    setWeekStart(startOfWeekMonday(initialDate));
+    setStartDay(academyDay(initialDate));
   }, [initialDate]);
 
-  const changeWeek = (offset: number) => {
-    const next = new Date(weekStart);
-    next.setDate(next.getDate() + offset * 7);
-    setWeekStart(next);
-    const params = new URLSearchParams(searchParams.toString());
-    const formatDate = (date: Date) =>
-      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const end = new Date(next);
-    end.setDate(end.getDate() + 6);
-    params.set("period", "custom");
-    params.set("from", formatDate(next));
-    params.set("to", formatDate(end));
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  const changeStart = (day: string) => {
+    setStartDay(day);
+    router.replace(`${pathname}?from=${day}`, { scroll: false });
   };
 
-  const openCreate = () => {
+  const openCreate = (day?: string) => {
+    setCreateDate(day ?? startDay);
     setInitial(undefined);
     setOpen(true);
   };
@@ -108,19 +102,19 @@ export function CalendarContent({
             <Sparkles />
             Пакетный ввод
           </Button>
-          <Button type="button" variant="accent" className="min-h-11" onClick={openCreate}>
+          <Button type="button" variant="accent" className="min-h-11" onClick={() => openCreate()}>
             <Plus />
             Создать вручную
           </Button>
         </div>
       )}
 
-      <WeeklyCalendar
+      <AdminEventCalendar
         events={events}
-        weekStart={weekStart}
-        onPreviousWeek={() => changeWeek(-1)}
-        onNextWeek={() => changeWeek(1)}
-        onEventClick={canAuthor ? openEdit : undefined}
+        start={startDay}
+        onChange={changeStart}
+        onEdit={openEdit}
+        onCreate={openCreate}
       />
 
       <EventBatchModal
@@ -136,6 +130,7 @@ export function CalendarContent({
         onOpenChange={setOpen}
         branches={branches}
         initial={initial}
+        defaultDate={createDate}
         canEditNullBranch={canEditNullBranch}
         defaultBranchId={defaultBranchId}
         onSwitchToBatch={() => {

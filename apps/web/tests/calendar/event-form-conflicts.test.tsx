@@ -70,6 +70,22 @@ beforeEach(() => {
 });
 
 describe("Форма: время и подтверждение пересечений", () => {
+  it("подставляет выбранную дату и оставляет имя ручным, вид и спикера списками", () => {
+    render(
+      <EventFormModal
+        open
+        onOpenChange={vi.fn()}
+        branches={[]}
+        canEditNullBranch
+        defaultBranchId={null}
+        defaultDate="2026-11-10"
+      />,
+    );
+    expect((screen.getByLabelText("Начало") as HTMLInputElement).value).toMatch(/^2026-11-10T/);
+    expect(screen.getByLabelText("Название").tagName).toBe("INPUT");
+    expect(screen.getByRole("combobox", { name: "Тип" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Добавить нового спикера" })).toBeInTheDocument();
+  });
   it("редактирует даты без времени, не сдвигая включённый последний день", async () => {
     showForm({
       ...initial,

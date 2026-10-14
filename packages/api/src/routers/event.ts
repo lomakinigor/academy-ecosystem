@@ -282,15 +282,22 @@ export const eventRouter = router({
       ctx.branchScope,
     );
 
-    const events = await ctx.prisma.event.findMany({
+    const loadedEvents = await ctx.prisma.event.findMany({
       where,
       orderBy: { start_at: "asc" },
       include: {
         branch: { select: { id: true, name: true, city: true } },
         speaker: { select: { id: true, name: true, avatar: true } },
         _count: { select: { bookings: true } },
+        bookings: { select: { status: true } },
       },
     });
+
+    const events = loadedEvents.map(({ bookings, ...event }) => ({
+      ...event,
+      confirmed_count: (bookings ?? []).filter((booking) => booking.status === "CONFIRMED").length,
+      waitlist_count: (bookings ?? []).filter((booking) => booking.status === "WAITLIST").length,
+    }));
 
     const byDay: Record<string, typeof events> = {};
     for (const ev of events) {

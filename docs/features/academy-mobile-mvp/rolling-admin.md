@@ -1,0 +1,13 @@
+# Рабочий скользящий календарь администратора
+
+Discovery: администратор создаёт и контролирует мероприятия, не выбирает услуги как клиент. Сейчас публичные фильтры занимают экран, неделя коротка и не показывает служебные данные. Desired: окно от текущей даты до соответствующей даты следующего месяца включительно; недельные группы, полный список на телефоне. Сохраняем cream/gold стиль, тип/спикер dropdown, manual name, обе формы. Альтернатива публичной сетки отклонена владельцем. Риски: конец месяца, скрытые старые URL-фильтры, многодневные events, отменённые bookings, AI-придуманный спикер.
+
+Acceptance: admin без Sidebar/клиентских фильтров; from URL либо сегодня по Екатеринбургу; месячный конец clamp на последний день месяца; стрелки сдвигают начало на7дней, Сегодня возвращает текущую дату. Desktop недельные grids без дней вне окна; mobile полноширинные карточки в каждой неделе, явные weekday/weekend, все события дня. Карточка: дата/часы либо диапазонбезвремени, статус, спикер/место, подтверждено/мест, свободно, ожидают, изменено (при наличии). Недостающий адрес предупреждение, но не новый запрет публикации. Не показывать фамилии клиентов.
+
+API admin list: дополнительные counts CONFIRMED и WAITLIST (не использовать старый общий count для мест), timestamps. Не менять booking workflow, schema и публичные фильтры. Public API прежний. Ручная форма mobile fullscreen с sticky footer; выбранная дата подставляется, тип/спикер существующие dropdown, добавление спикера сохраняется. Для parse имя не подтверждённое исходным текстом сбрасывается: нужен выбор вручную.
+
+Review passed: scope/совместимость/edge cases определены. Plan red date/component/API tests → range+admin UI → mobile form+AI grounding → full tests/typecheck → preview/browser. DB migrations none. Rollback UI/API additions, данные не трогаются. Mini App не начинаем.
+
+Verification: red UI test на отсутствующем rolling component, red AI test на придуманном имени.160 web tests green;124 API tests green после последовательного запуска. Обе typecheck green. Existing API include-test обновлён для status-only booking lookup; имена клиентов не запрашиваются и statuses не передаются UI, только агрегаты. Публичные фильтры и API неизменны. Даты в range и времени карточек фиксированы по Екатеринбургу для текущего одного филиала.
+
+Проверочная публикация: dpl_6SLhK4G2bh8PNetV1gDDKCrP5pfm, https://academy-ecosystem-oj8cybjrg-igorsibola.vercel.app/admin/calendar . Host добавлен в существующую WAF allowlist; новые credentials/DB migrations не нужны. Browser подтвердил login с callback admin/calendar. Для screenshot и авторизованного360/desktop сценария требуется самостоятельный вход владельца. Никаких новых мероприятий/спикеров для тестирования не создавать в production.

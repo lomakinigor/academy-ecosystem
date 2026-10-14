@@ -83,6 +83,18 @@ describe("eventRouter.list — авторизация", () => {
 });
 
 describe("eventRouter.list — выходной формат", () => {
+  it("выводит подтверждённые места отдельно от отмен и листа ожидания", async () => {
+    const prisma = makePrisma();
+    prisma.event.findMany.mockResolvedValueOnce([
+      {
+        ...sampleEvents[0],
+        bookings: [{ status: "CONFIRMED" }, { status: "CANCELLED" }, { status: "WAITLIST" }],
+      },
+    ] as never);
+    const result = await appRouter.createCaller(makeCtx(session(), prisma)).event.list(range);
+    expect(result.events[0]).toMatchObject({ confirmed_count: 1, waitlist_count: 1 });
+    expect(result.events[0]).not.toHaveProperty("bookings");
+  });
   it("возвращает {events, total, byDay}", async () => {
     const caller = appRouter.createCaller(makeCtx());
     const r = await caller.event.list(range);
@@ -105,6 +117,7 @@ describe("eventRouter.list — выходной формат", () => {
       branch: { select: { id: true, name: true, city: true } },
       speaker: { select: { id: true, name: true, avatar: true } },
       _count: { select: { bookings: true } },
+      bookings: { select: { status: true } },
     });
     expect(callArg.orderBy).toEqual({ start_at: "asc" });
   });

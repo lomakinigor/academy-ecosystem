@@ -66,6 +66,8 @@ export interface EventFormInitial {
   pricing_note: string | null;
   tags: string[];
   max_participants: number | null;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 interface EventFormModalProps {
@@ -76,6 +78,7 @@ interface EventFormModalProps {
   canEditNullBranch: boolean;
   defaultBranchId: string | null;
   onSwitchToBatch?: () => void;
+  defaultDate?: string;
 }
 
 const toLocalInput = (d: Date): string => {
@@ -105,6 +108,7 @@ export function EventFormModal({
   canEditNullBranch,
   defaultBranchId,
   onSwitchToBatch,
+  defaultDate,
 }: EventFormModalProps) {
   const isEdit = Boolean(initial);
   const router = useRouter();
@@ -209,6 +213,10 @@ export function EventFormModal({
       setDescription("");
       const now = new Date();
       now.setMinutes(0, 0, 0);
+      if (defaultDate) {
+        const [year, month, day] = defaultDate.split("-").map(Number);
+        now.setFullYear(year!, month! - 1, day!);
+      }
       setStart(toLocalInput(now));
       setEnd(toLocalInput(new Date(now.getTime() + 2 * 60 * 60 * 1000)));
       setBranchId(defaultBranchId ?? "");
@@ -221,7 +229,7 @@ export function EventFormModal({
       setMaxParticipants("");
       setTagsRaw("");
     }
-  }, [open, initial, defaultBranchId]);
+  }, [open, initial, defaultBranchId, defaultDate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,7 +325,7 @@ export function EventFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-6 [&_input]:min-h-11 [&_button]:min-h-11">
+      <DialogContent className="h-[100dvh] max-h-[100dvh] w-full max-w-none rounded-none overflow-y-auto p-4 sm:h-auto sm:max-h-[90vh] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:rounded-lg sm:p-6 [&_input]:min-h-11 [&_button]:min-h-11">
         <DialogHeader>
           <div className="flex flex-col items-start justify-between gap-2 sm:flex-row">
             <div>
@@ -344,6 +352,15 @@ export function EventFormModal({
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={onSubmit}>
+          {initial?.created_at && (
+            <p className="text-xs text-foreground/60">
+              Создано:{" "}
+              {initial.created_at.toLocaleString("ru-RU", { timeZone: "Asia/Yekaterinburg" })}
+              {initial.updated_at
+                ? ` · Изменено: ${initial.updated_at.toLocaleString("ru-RU", { timeZone: "Asia/Yekaterinburg" })}`
+                : ""}
+            </p>
+          )}
           <Field label="Название">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
           </Field>
@@ -621,7 +638,7 @@ export function EventFormModal({
             </div>
           )}
 
-          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <DialogFooter className="sticky -bottom-4 z-10 -mx-4 border-t border-border bg-card p-4 flex-col-reverse gap-2 sm:static sm:mx-0 sm:border-0 sm:p-0 sm:flex-row sm:justify-between">
             {isEdit ? (
               <Button
                 type="button"
