@@ -24,6 +24,7 @@ import { trpc } from "@/lib/trpc/client";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
 import { getWeekDays, startOfWeekMonday } from "./weekly-calendar";
 import { dateOnlyStart, dateOnlyEnd, lastEventDate } from "@/lib/events/dates";
+import { calendarTitle } from "@/lib/events/short-title";
 
 type PricingType = "FIXED" | "DONATION" | "FREE";
 type EventStatus = "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -50,6 +51,7 @@ interface BranchOption {
 export interface EventFormInitial {
   id: string;
   title: string;
+  calendar_title?: string | null;
   description: string | null;
   type: EventTypeValue;
   status: EventStatus;
@@ -142,6 +144,7 @@ export function EventFormModal({
 
   // Form state
   const [title, setTitle] = useState("");
+  const [shortTitle, setShortTitle] = useState("");
   const [type, setType] = useState<EventTypeValue>("LESSON");
   const [description, setDescription] = useState("");
   const [start, setStart] = useState("");
@@ -182,6 +185,7 @@ export function EventFormModal({
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setShortTitle(initial?.calendar_title ?? "");
     setShowNewSpeaker(false);
     setNewSpeakerName("");
     if (initial) {
@@ -267,6 +271,7 @@ export function EventFormModal({
 
     const common = {
       title: title.trim(),
+      calendar_title: shortTitle.trim() || null,
       description: description.trim() || undefined,
       type,
       start_at: startDate,
@@ -439,6 +444,18 @@ export function EventFormModal({
               </Field>
             )}
 
+            <Field label="Краткое название для календаря">
+              <Input
+                aria-label="Краткое название для календаря"
+                value={shortTitle}
+                onChange={(e) => setShortTitle(e.target.value)}
+                maxLength={40}
+                placeholder={calendarTitle(title)}
+              />
+              <p className="mt-1 text-xs text-foreground/60">
+                Автоматически: {calendarTitle(title)}. Введите свою подпись, чтобы заменить.
+              </p>
+            </Field>
             <label className="flex min-h-11 items-center gap-2 sm:col-span-2">
               <input
                 type="checkbox"

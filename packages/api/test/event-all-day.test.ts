@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { eventCreateSchema } from "../src/schemas/event";
+import { eventCreateSchema, eventUpdateSchema } from "../src/schemas/event";
 import { buildEventListWhere } from "../src/routers/event";
 import { appRouter } from "../src/root";
 import type { Context } from "../src/context";
@@ -14,6 +14,17 @@ const input = {
   venue: "На поселении",
 };
 describe("Мероприятие без времени", () => {
+  it("сохраняет краткое имя, ограничивает длину и позволяет сбросить его", () => {
+    expect(eventCreateSchema.parse({ ...input, calendar_title: "Велес" }).calendar_title).toBe(
+      "Велес",
+    );
+    expect(eventCreateSchema.safeParse({ ...input, calendar_title: "x".repeat(41) }).success).toBe(
+      false,
+    );
+    expect(
+      eventUpdateSchema.parse({ id: input.speaker_id, calendar_title: null }).calendar_title,
+    ).toBeNull();
+  });
   it("сохраняет признак режима без времени", () => {
     expect(eventCreateSchema.parse(input)).toMatchObject({ is_all_day: true });
   });

@@ -369,6 +369,7 @@ export const eventRouter = router({
     const created = await ctx.prisma.event.create({
       data: {
         title: input.title,
+        calendar_title: input.calendar_title,
         description: input.description,
         type: input.type,
         status: input.status,

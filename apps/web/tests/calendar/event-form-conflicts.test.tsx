@@ -123,6 +123,16 @@ describe("Форма: время и подтверждение пересече�
     showForm();
     expect(screen.queryByText("Филиал")).not.toBeInTheDocument();
   });
+  it("сохраняет ручную подпись отдельно от полного названия", async () => {
+    showForm();
+    await userEvent.type(screen.getByLabelText("Краткое название для календаря"), "Велес");
+    await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() =>
+      expect(api.save).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Семинар", calendar_title: "Велес" }),
+      ),
+    );
+  });
   it("показывает день недели и сохраняет исходное окончание", async () => {
     showForm();
     expect(screen.getByText(/понедельник/i)).toBeInTheDocument();

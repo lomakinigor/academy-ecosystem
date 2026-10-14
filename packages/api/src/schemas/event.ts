@@ -24,6 +24,7 @@ export const isDateOnlyRange = (start: Date, end: Date | undefined) =>
 export const eventCreateSchema = z
   .object({
     title: z.string().min(3, "Минимум 3 символа").max(200),
+    calendar_title: z.string().trim().max(40).nullable().optional(),
     description: z.string().max(5000).optional(),
     type: eventTypeSchema,
     status: eventStatusSchema.default("PLANNED"),
@@ -122,6 +123,7 @@ export type EventPublicListInput = z.infer<typeof eventPublicListInputSchema>;
 export const eventUpdateSchema = z.object({
   id: cuidSchema,
   title: z.string().min(3).max(200).optional(),
+  calendar_title: z.string().trim().max(40).nullable().optional(),
   description: z.string().max(5000).nullable().optional(),
   type: eventTypeSchema.optional(),
   status: eventStatusSchema.optional(),

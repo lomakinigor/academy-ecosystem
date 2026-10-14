@@ -50,18 +50,14 @@ describe("Рабочий месяц администратора", () => {
     const cells = screen.getByRole("group", { name: "Дни календаря" }).children;
     expect(cells[0]).toHaveAttribute("aria-hidden", "true");
     expect(cells[1]).toHaveAttribute("aria-hidden", "true");
-    expect(cells[2]).toHaveAccessibleName("14 октября, мероприятий: 0");
+    expect(cells[2]).toHaveTextContent("14");
     for (const day of [15, 16, 17])
       expect(
-        screen.getByRole("button", { name: `${day} октября, мероприятий: 1` }),
-      ).toHaveAttribute("data-has-events", "true");
-    expect(screen.getByRole("button", { name: "18 октября, мероприятий: 0" })).toHaveAttribute(
-      "data-has-events",
-      "false",
-    );
+        screen.getByRole("button", { name: `Путь Велеса — ${day} октября, редактировать` }),
+      ).toHaveTextContent("Велес");
     expect(screen.queryByText("Направления")).toBeNull();
-    expect(screen.getByRole("button", { name: /14 ноября, мероприятий/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /15 ноября, мероприятий/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /14 ноября — создать/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /15 ноября — создать/ })).toBeNull();
   });
   it("листается по неделе и открывает создание на конкретный день", async () => {
     const change = vi.fn(),
@@ -77,7 +73,7 @@ describe("Рабочий месяц администратора", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Вперёд на неделю" }));
     expect(change).toHaveBeenCalledWith("2026-10-21");
-    await userEvent.click(screen.getByRole("button", { name: "14 октября, мероприятий: 0" }));
+    await userEvent.click(screen.getByRole("button", { name: "14 октября — создать мероприятие" }));
     expect(create).toHaveBeenCalledWith("2026-10-14");
   });
   it("сразу открывает единственное мероприятие, при нескольких предлагает выбор", async () => {
@@ -101,15 +97,12 @@ describe("Рабочий месяц администратора", () => {
         onCreate={vi.fn()}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "15 октября, мероприятий: 1" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Путь Велеса — 15 октября, редактировать" }),
+    );
     expect(edit).toHaveBeenCalledWith(event);
     edit.mockClear();
-    await userEvent.click(screen.getByRole("button", { name: "16 октября, мероприятий: 2" }));
-    expect(edit).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("dialog", { name: "16 октября — выберите мероприятие" }),
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Йога" }));
+    await userEvent.click(screen.getByRole("button", { name: "Йога — 16 октября, редактировать" }));
     expect(edit).toHaveBeenCalledWith(expect.objectContaining({ id: "evt2" }));
   });
 });

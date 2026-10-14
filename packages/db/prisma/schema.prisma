@@ -173,6 +173,7 @@ model Branch {
 model Event {
   id               String      @id @default(cuid())
   title            String
+  calendar_title   String?
   description      String?
   type             EventType
   status           EventStatus @default(DRAFT)

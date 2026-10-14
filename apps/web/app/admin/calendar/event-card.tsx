@@ -11,6 +11,7 @@ import { dateOnlyLabel } from "@/lib/events/dates";
 export interface EventCardData {
   id: string;
   title: string;
+  calendar_title?: string | null;
   description: string | null;
   type: EventTypeValue;
   status: "DRAFT" | "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";

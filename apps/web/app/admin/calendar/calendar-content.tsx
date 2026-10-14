@@ -30,6 +30,7 @@ interface CalendarContentProps {
 const fromCard = (e: EventCardData): EventFormInitial => ({
   id: e.id,
   title: e.title,
+  calendar_title: e.calendar_title,
   description: e.description,
   type: e.type,
   status: e.status,
