@@ -61,6 +61,38 @@ async function review() {
 }
 
 describe("Мобильная проверка пакетного ввода", () => {
+  it("не передаёт нулевой лимит даже из старого ответа parser", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          events: [
+            {
+              title: "Семинар",
+              type: "SEMINAR",
+              date: "2026-10-15",
+              start_time: "10:00",
+              end_time: "12:00",
+              speaker_id: "speaker1",
+              branch_id: null,
+              pricing_type: "FREE",
+              price: null,
+              tags: [],
+              is_online: false,
+              max_participants: 0,
+            },
+          ],
+        }),
+      }),
+    );
+    await review();
+    await userEvent.click(screen.getByRole("button", { name: "Создать 1 событие" }));
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ max_participants: undefined }),
+    );
+  });
   it("сохраняет начало без обязательного окончания", async () => {
     await review();
     await userEvent.clear(screen.getByLabelText("Окончание мероприятия 1"));

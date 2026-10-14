@@ -24,6 +24,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { ParsedEvent } from "@/app/api/ai/parse-events/route";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from "./filters";
 import { dateOnlyStart, dateOnlyEnd } from "@/lib/events/dates";
+import { normalizeParticipantLimit } from "@/lib/events/participant-limit";
 
 interface BranchOption {
   id: string;
@@ -163,7 +164,12 @@ export function EventBatchModal({
   };
 
   const handleCreateAll = async () => {
-    const selected = rows.filter((r) => r.include);
+    const selected = rows
+      .filter((r) => r.include)
+      .map((row) => ({
+        ...row,
+        max_participants: normalizeParticipantLimit(row.max_participants),
+      }));
     if (selected.length === 0) return;
     setCreateError(null);
 

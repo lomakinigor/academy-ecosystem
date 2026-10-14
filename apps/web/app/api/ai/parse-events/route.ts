@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getCurrentUser } from "@/lib/auth/helpers";
+import { normalizeParticipantLimit } from "@/lib/events/participant-limit";
 
 const requestSchema = z.object({
   text: z.string().min(1).max(10000),
@@ -118,7 +119,8 @@ const eventToolSchema = {
               pricing_note: { type: "string", description: "Заметка о цене или null" },
               max_participants: {
                 type: "number",
-                description: "Максимальное число участников или null",
+                description:
+                  "Положительное целое число мест, только если лимит указан в тексте. Иначе null, не 0",
               },
               is_online: { type: "boolean", description: "Онлайн-формат" },
               tags: {
@@ -247,7 +249,7 @@ export async function POST(req: Request) {
       pricing_type: (e.pricing_type as "FIXED" | "DONATION" | "FREE") ?? "FIXED",
       price: (e.price as number | null) ?? null,
       pricing_note: (e.pricing_note as string | null) ?? null,
-      max_participants: (e.max_participants as number | null) ?? null,
+      max_participants: normalizeParticipantLimit(e.max_participants),
       is_online: Boolean(e.is_online ?? false),
       tags: Array.isArray(e.tags) ? (e.tags as string[]) : [],
     };

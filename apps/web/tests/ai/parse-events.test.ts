@@ -18,6 +18,72 @@ beforeEach(() => {
 });
 
 describe("Пакетное распознавание: бюджет ответа", () => {
+  it.each([0, -1, 1.5, "20", null])("не передаёт недопустимый лимит %s из AI", async (limit) => {
+    mock.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                tool_calls: [
+                  {
+                    function: {
+                      name: "create_events",
+                      arguments: JSON.stringify({
+                        events: [
+                          {
+                            title: "Семинар",
+                            date: "2026-10-15",
+                            is_all_day: true,
+                            max_participants: limit,
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const data = await (await POST(request())).json();
+    expect(data.events[0].max_participants).toBeNull();
+  });
+  it("сохраняет реальный положительный лимит", async () => {
+    mock.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                tool_calls: [
+                  {
+                    function: {
+                      name: "create_events",
+                      arguments: JSON.stringify({
+                        events: [
+                          {
+                            title: "Семинар",
+                            date: "2026-10-15",
+                            is_all_day: true,
+                            max_participants: 20,
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const data = await (await POST(request())).json();
+    expect(data.events[0].max_participants).toBe(20);
+  });
   it("сбрасывает придуманного спикера, которого нет в исходном тексте", async () => {
     mock.fetch.mockResolvedValue(
       new Response(
