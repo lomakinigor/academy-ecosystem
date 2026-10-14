@@ -133,7 +133,7 @@ export function WeeklyCalendar({
                     >
                       <span className="block font-semibold text-brand-primary">
                         {event.is_all_day
-                          ? "Без указания времени"
+                          ? "Весь день"
                           : `${formatTime(event.start_at)} — ${formatTime(event.end_at)}`}
                       </span>
                       <span className="mt-1 block break-words text-foreground">{event.title}</span>

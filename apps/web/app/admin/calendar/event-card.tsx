@@ -140,7 +140,7 @@ export function EventCard({ event, onClick, href }: EventCardProps) {
         </h3>
         {event.is_all_day && (
           <p className="mt-1 text-sm text-foreground/70">
-            {dateOnlyLabel(event.start_at, event.end_at)} · Без указания времени
+            {dateOnlyLabel(event.start_at, event.end_at)} · Весь день
           </p>
         )}
 
@@ -159,7 +159,7 @@ export function EventCard({ event, onClick, href }: EventCardProps) {
           </div>
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="text-xs text-foreground/50">Время</span>
-            <span>{event.is_all_day ? "Без указания времени" : `${startTime}–${endTime}`}</span>
+            <span>{event.is_all_day ? "Весь день" : `${startTime}–${endTime}`}</span>
           </div>
           <div className="flex items-center gap-2 text-foreground/80">
             <span className="text-xs text-foreground/50">Стоимость</span>

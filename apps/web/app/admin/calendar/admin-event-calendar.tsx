@@ -1,17 +1,18 @@
 "use client";
-import { Button } from "@academy/ui";
-import { ChevronLeft, ChevronRight, Plus, MapPin, User2 } from "lucide-react";
+
+import { useState } from "react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@academy/ui";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { EventCardData } from "./event-card";
 import { academyDay, dayLabel, rollingRange, shiftDay } from "@/lib/events/rolling-range";
-import { dateOnlyLabel } from "@/lib/events/dates";
 
-const statuses = {
-  DRAFT: "Черновик",
-  PLANNED: "Запланировано",
-  ACTIVE: "Идёт",
-  COMPLETED: "Завершено",
-  CANCELLED: "Отменено",
-};
 export function AdminEventCalendar({
   events,
   start,
@@ -26,161 +27,139 @@ export function AdminEventCalendar({
   onCreate: (date: string) => void;
 }) {
   const range = rollingRange(start);
-  const weeks: string[][] = [];
-  for (const day of range.days) {
-    if (!weeks.length || new Date(`${day}T00:00Z`).getUTCDay() === 1) weeks.push([]);
-    weeks[weeks.length - 1]!.push(day);
-  }
-  const time = (date: Date) =>
-    date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Yekaterinburg",
-    });
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const dailyEvents = (day: string) =>
+    events
+      .filter((event) => {
+        const offset = event.is_all_day ? "Z" : "+05:00";
+        return (
+          event.start_at < new Date(`${shiftDay(day, 1)}T00:00:00${offset}`) &&
+          event.end_at > new Date(`${day}T00:00:00${offset}`)
+        );
+      })
+      .sort((a, b) => a.start_at.getTime() - b.start_at.getTime());
+  const select = (day: string) => {
+    const daily = dailyEvents(day);
+    if (!daily.length) onCreate(day);
+    else if (daily.length === 1) onEdit(daily[0]!);
+    else setSelectedDay(day);
+  };
+  const offset = (new Date(`${start}T00:00Z`).getUTCDay() + 6) % 7;
+  const change = (day: string) => {
+    setSelectedDay(null);
+    onChange(day);
+  };
   return (
-    <section aria-label="Рабочий календарь на месяц" className="space-y-5">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-3">
+    <section
+      aria-label="Рабочий календарь на месяц"
+      className="mx-auto w-full max-w-2xl rounded-xl border border-border bg-card p-3 sm:p-5"
+    >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-heading font-semibold">
+          <h2 className="font-heading text-sm font-semibold sm:text-base">
             {dayLabel(start)} — {dayLabel(range.end)}
           </h2>
-          <p className="text-xs text-foreground/60">
-            {events.length} мероприятий · месяц от выбранной даты
-          </p>
+          <p className="text-xs text-foreground/60">{events.length} мероприятий</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
             variant="outline"
-            className="min-h-11 min-w-11"
+            className="min-h-11 min-w-11 px-2"
             aria-label="Назад на неделю"
-            onClick={() => onChange(shiftDay(start, -7))}
+            onClick={() => change(shiftDay(start, -7))}
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="outline" className="min-h-11" onClick={() => onChange(academyDay())}>
+          <Button variant="outline" className="min-h-11 px-3" onClick={() => change(academyDay())}>
             Сегодня
           </Button>
           <Button
             variant="outline"
-            className="min-h-11 min-w-11"
+            className="min-h-11 min-w-11 px-2"
             aria-label="Вперёд на неделю"
-            onClick={() => onChange(shiftDay(start, 7))}
+            onClick={() => change(shiftDay(start, 7))}
           >
             <ChevronRight className="size-4" />
           </Button>
         </div>
       </div>
-      {weeks.map((week, index) => (
-        <section key={week[0]} aria-label={`Неделя ${index + 1}`}>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/60">
-            {dayLabel(week[0]!)} — {dayLabel(week[week.length - 1]!)}
-          </h3>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-7">
-            {week.map((day) => {
-              const weekday = new Date(`${day}T00:00Z`).getUTCDay();
-              const daily = events
-                .filter((event) => {
-                  const from = new Date(`${day}T00:00:00${event.is_all_day ? "Z" : "+05:00"}`);
-                  const to = new Date(
-                    `${shiftDay(day, 1)}T00:00:00${event.is_all_day ? "Z" : "+05:00"}`,
-                  );
-                  return event.start_at < to && event.end_at > from;
-                })
-                .sort(
-                  (a, b) =>
-                    Number(Boolean(b.is_all_day)) - Number(Boolean(a.is_all_day)) ||
-                    a.start_at.getTime() - b.start_at.getTime(),
-                );
-              return (
-                <section
-                  key={day}
-                  aria-label={dayLabel(day)}
-                  data-weekend={weekday === 0 || weekday === 6}
-                  className={`min-w-0 rounded-xl border border-border p-3 ${weekday === 0 || weekday === 6 ? "bg-brand-warm/60" : "bg-card"} ${day === academyDay() ? "ring-2 ring-brand-accent/50" : ""}`}
+      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-foreground/60">
+        {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day, index) => (
+          <span key={day} className={index >= 5 ? "text-brand-earth" : ""}>
+            {day}
+          </span>
+        ))}
+      </div>
+      <div role="group" aria-label="Дни календаря" className="grid grid-cols-7 gap-1 sm:gap-2">
+        {Array.from({ length: offset }, (_, index) => (
+          <span key={`empty-${index}`} aria-hidden="true" />
+        ))}
+        {range.days.map((day) => {
+          const daily = dailyEvents(day);
+          const weekday = new Date(`${day}T00:00Z`).getUTCDay();
+          const occupied = daily.length > 0;
+          return (
+            <button
+              key={day}
+              type="button"
+              aria-label={`${dayLabel(day)}, мероприятий: ${daily.length}`}
+              title={`${dayLabel(day)}: ${daily.length ? `мероприятий ${daily.length}` : "создать мероприятие"}`}
+              aria-current={day === academyDay() ? "date" : undefined}
+              data-has-events={occupied ? "true" : "false"}
+              onClick={() => select(day)}
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent sm:min-h-16 ${occupied ? "border-brand-accent/50 bg-brand-accent/20 hover:bg-brand-accent/35" : "border-border bg-background hover:bg-brand-warm"} ${day === academyDay() ? "ring-2 ring-inset ring-brand-accent" : ""}`}
+            >
+              <span
+                className={`font-heading font-semibold ${weekday === 0 || weekday === 6 ? "text-brand-earth" : "text-brand-primary"}`}
+              >
+                {Number(day.slice(8))}
+              </span>
+              <span
+                aria-hidden="true"
+                className={`text-[11px] leading-none ${occupied ? "font-semibold text-brand-primary" : "text-foreground/40"}`}
+              >
+                {daily.length || "—"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs text-foreground/60">
+        Число под датой — количество мероприятий. Пустой день — создание.
+      </p>
+      <Dialog
+        open={Boolean(selectedDay)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDay(null);
+        }}
+      >
+        <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto p-4">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay
+                ? `${dayLabel(selectedDay)} — выберите мероприятие`
+                : "Выберите мероприятие"}
+            </DialogTitle>
+            <DialogDescription>Нажмите название, чтобы открыть редактирование.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {selectedDay &&
+              dailyEvents(selectedDay).map((event) => (
+                <Button
+                  key={event.id}
+                  variant="outline"
+                  className="h-auto min-h-11 w-full justify-start whitespace-normal text-left"
+                  onClick={() => {
+                    setSelectedDay(null);
+                    onEdit(event);
+                  }}
                 >
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-semibold uppercase text-foreground/60">
-                        {new Date(`${day}T00:00Z`).toLocaleDateString("ru-RU", {
-                          weekday: "long",
-                          timeZone: "UTC",
-                        })}
-                      </span>
-                      <p className="font-heading font-bold">{dayLabel(day)}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      className="min-h-11 min-w-11 px-2"
-                      aria-label={`Создать на ${dayLabel(day)}`}
-                      onClick={() => onCreate(day)}
-                    >
-                      <Plus className="size-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {daily.length === 0 && (
-                      <p className="text-xs text-foreground/50">Нет мероприятий</p>
-                    )}
-                    {daily.map((event) => (
-                      <button
-                        key={event.id}
-                        onClick={() => onEdit(event)}
-                        className="w-full min-w-0 rounded-lg border border-brand-accent/30 bg-brand-warm/40 p-3 text-left text-sm transition-colors hover:bg-brand-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent lg:p-2 lg:text-xs"
-                      >
-                        <span className="block text-xs font-semibold text-brand-primary">
-                          {event.is_all_day
-                            ? dateOnlyLabel(event.start_at, event.end_at)
-                            : `${time(event.start_at)}–${time(event.end_at)}`}
-                        </span>
-                        {event.is_all_day && (
-                          <span className="block text-xs text-foreground/60">
-                            Без указания времени
-                          </span>
-                        )}
-                        <span className="mt-2 block break-words font-heading font-semibold text-brand-primary">
-                          {event.title}
-                        </span>
-                        <span className="mt-2 inline-block rounded-md border border-border bg-card px-2 py-1 text-[11px]">
-                          {statuses[event.status]}
-                        </span>
-                        <span className="mt-2 flex items-start gap-1 break-words">
-                          <User2 className="mt-0.5 size-3 shrink-0" />
-                          {event.speaker.name}
-                        </span>
-                        <span className="mt-1 flex items-start gap-1 break-words">
-                          <MapPin className="mt-0.5 size-3 shrink-0" />
-                          {event.venue ||
-                            (event.is_online ? "Онлайн: ссылка не указана" : "Место не указано")}
-                        </span>
-                        <span className="mt-2 block">
-                          Подтверждено: {event.confirmed_count ?? 0}
-                          {event.max_participants
-                            ? ` / ${event.max_participants} · Свободно: ${Math.max(0, event.max_participants - (event.confirmed_count ?? 0))}`
-                            : " · без лимита"}
-                        </span>
-                        {(event.waitlist_count ?? 0) > 0 && (
-                          <span className="block">Ожидают: {event.waitlist_count}</span>
-                        )}
-                        {event.updated_at && (
-                          <span className="mt-2 block text-[10px] text-foreground/60">
-                            Изменено:{" "}
-                            {event.updated_at.toLocaleDateString("ru-RU", {
-                              timeZone: "Asia/Yekaterinburg",
-                            })}
-                          </span>
-                        )}
-                        <span className="mt-2 block font-medium text-brand-primary underline">
-                          Открыть карточку
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
+                  {event.title}
+                </Button>
+              ))}
           </div>
-        </section>
-      ))}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

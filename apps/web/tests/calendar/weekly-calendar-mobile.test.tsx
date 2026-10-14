@@ -59,7 +59,7 @@ describe("Недельный календарь на телефоне", () => {
       />,
     );
     expect(screen.getAllByText("Длинное название мероприятия retreat")).toHaveLength(3);
-    expect(screen.getAllByText("Без указания времени")).toHaveLength(3);
+    expect(screen.getAllByText("Весь день")).toHaveLength(3);
     expect(
       within(screen.getByRole("region", { name: /воскресенье, 18 октября/i })).queryByRole(
         "button",

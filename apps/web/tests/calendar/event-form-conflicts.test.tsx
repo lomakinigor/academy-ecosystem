@@ -93,7 +93,7 @@ describe("Форма: время и подтверждение пересече�
       start_at: new Date("2026-10-15T00:00Z"),
       end_at: new Date("2026-10-18T00:00Z"),
     });
-    expect(screen.getByLabelText("Без указания времени")).toBeChecked();
+    expect(screen.getByLabelText("Весь день")).toBeChecked();
     expect(screen.getByLabelText("Начало")).toHaveValue("2026-10-15");
     expect(screen.getByLabelText("Окончание")).toHaveValue("2026-10-17");
     await userEvent.click(screen.getByRole("button", { name: "Сохранить" }));
@@ -105,6 +105,19 @@ describe("Форма: время и подтверждение пересече�
         }),
       ),
     );
+  });
+  it("для поселения включает весь день и позволяет вручную вернуть часы", async () => {
+    showForm();
+    fireEvent.change(screen.getByLabelText("Место проведения"), {
+      target: { value: "На поселении" },
+    });
+    expect(screen.getByLabelText("Весь день")).toBeChecked();
+    await userEvent.click(screen.getByLabelText("Весь день"));
+    fireEvent.change(screen.getByLabelText("Место проведения"), {
+      target: { value: "На поселении, дом 1" },
+    });
+    expect(screen.getByLabelText("Весь день")).not.toBeChecked();
+    expect(screen.getByLabelText("Начало")).toHaveAttribute("type", "datetime-local");
   });
   it("в общей админке не предлагает выбор филиала", () => {
     showForm();

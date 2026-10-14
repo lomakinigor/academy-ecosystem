@@ -68,6 +68,8 @@ export interface EventFormInitial {
   max_participants: number | null;
   created_at?: Date;
   updated_at?: Date;
+  confirmed_count?: number;
+  waitlist_count?: number;
 }
 
 interface EventFormModalProps {
@@ -352,6 +354,29 @@ export function EventFormModal({
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={onSubmit}>
+          {initial && (
+            <div className="rounded-lg border border-border bg-brand-warm/40 p-3 text-sm">
+              <p>
+                Статус:{" "}
+                {
+                  {
+                    DRAFT: "Черновик",
+                    PLANNED: "Запланировано",
+                    ACTIVE: "Идёт",
+                    COMPLETED: "Завершено",
+                    CANCELLED: "Отменено",
+                  }[initial.status]
+                }
+              </p>
+              <p>
+                Подтверждено: {initial.confirmed_count ?? 0}
+                {initial.max_participants
+                  ? ` / ${initial.max_participants} · Свободно: ${Math.max(0, initial.max_participants - (initial.confirmed_count ?? 0))}`
+                  : " · без лимита"}
+              </p>
+              <p>Лист ожидания: {initial.waitlist_count ?? 0}</p>
+            </div>
+          )}
           {initial?.created_at && (
             <p className="text-xs text-foreground/60">
               Создано:{" "}
@@ -421,7 +446,7 @@ export function EventFormModal({
                 onChange={(e) => setAllDay(e.target.checked)}
                 className="size-4 accent-brand-accent"
               />
-              Без указания времени
+              Весь день
             </label>
             {allDay && (
               <p className="text-xs text-foreground/60 sm:col-span-2">
@@ -523,7 +548,13 @@ export function EventFormModal({
             <Field label="Место проведения">
               <Input
                 value={venue}
-                onChange={(e) => setVenue(e.target.value)}
+                onChange={(e) => {
+                  const nextVenue = e.target.value;
+                  if (/поселени[еяию]/i.test(nextVenue) && !/поселени[еяию]/i.test(venue)) {
+                    setAllDay(true);
+                  }
+                  setVenue(nextVenue);
+                }}
                 placeholder="ул. 8 Марта 194Б, зал 3 / zoom.us/j/..."
               />
             </Field>

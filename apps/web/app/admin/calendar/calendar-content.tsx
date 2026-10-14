@@ -48,6 +48,8 @@ const fromCard = (e: EventCardData): EventFormInitial => ({
   max_participants: e.max_participants,
   created_at: e.created_at,
   updated_at: e.updated_at,
+  confirmed_count: e.confirmed_count,
+  waitlist_count: e.waitlist_count,
 });
 
 /**

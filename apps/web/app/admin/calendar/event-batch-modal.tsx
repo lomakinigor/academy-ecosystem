@@ -424,7 +424,7 @@ export function EventBatchModal({
                                 checked={row.is_all_day ?? false}
                                 onChange={(e) => updateRow(i, { is_all_day: e.target.checked })}
                               />
-                              Без указания времени
+                              Весь день
                             </label>
                             {!row.is_all_day && (
                               <>

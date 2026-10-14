@@ -121,7 +121,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
               <span className="text-xs text-foreground/50">Время</span>
               <span className="font-medium text-brand-primary">
                 {event.is_all_day
-                  ? "Без указания времени"
+                  ? "Весь день"
                   : `${formatTime(event.start_at)}–${formatTime(event.end_at)}`}
               </span>
             </div>
