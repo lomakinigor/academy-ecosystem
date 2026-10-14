@@ -94,8 +94,8 @@ export function ClientsContent({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-      <header className="mb-6 flex items-start justify-between gap-4">
-        <div>
+      <header className="mb-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="font-heading text-3xl font-bold tracking-wide text-brand-primary">
             Клиенты
           </h1>
@@ -103,7 +103,13 @@ export function ClientsContent({
             Единая база для сайта и Telegram Mini App.
           </p>
         </div>
-        <Button type="button" variant="accent" size="sm" onClick={() => setOpen(true)}>
+        <Button
+          type="button"
+          variant="accent"
+          size="sm"
+          className="w-full sm:w-auto sm:shrink-0"
+          onClick={() => setOpen(true)}
+        >
           <Plus className="size-4" />
           Добавить клиента
         </Button>
