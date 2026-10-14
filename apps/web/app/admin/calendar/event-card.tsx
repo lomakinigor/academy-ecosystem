@@ -112,6 +112,7 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
 
   if (compact) {
     const compactTitle =
+      event.calendar_title?.trim() ||
       event.title.replace(/^(?:(?:занятие|занятия|семинар)\s*[-—–:]?\s+)+/i, "").trim() ||
       event.title;
     const weekday = displayDate.toLocaleDateString("ru-RU", {

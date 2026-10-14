@@ -34,6 +34,7 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
         .map((ev) => ({
           id: ev.id,
           title: ev.title,
+          calendar_title: ev.calendar_title,
           description: ev.description,
           type: ev.type as EventTypeValue,
           status: ev.status,

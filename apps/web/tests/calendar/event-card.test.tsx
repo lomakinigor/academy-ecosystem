@@ -27,14 +27,19 @@ describe("EventCard", () => {
   it("в компактном публичном виде оставляет основные данные, а остальное прячет в раскрытие", () => {
     render(
       <EventCard
-        event={baseEvent({ venue: "На поселении", tags: ["с проживанием"] })}
+        event={baseEvent({
+          calendar_title: "Храм",
+          venue: "На поселении",
+          tags: ["с проживанием"],
+        })}
         compact
         href="/event/evt1"
       />,
     );
 
     expect(screen.getByTestId("compact-event-card")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3, name: "Храм-3: день 1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Храм" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 4, name: "Храм-3: день 1" })).toBeInTheDocument();
     expect(screen.getByText(/В\.Ю\. Светлов/)).toBeInTheDocument();
     expect(screen.getByText("Подробнее")).toBeInTheDocument();
     expect(screen.getByText(/Место: На поселении/).closest("details")).not.toHaveAttribute("open");
