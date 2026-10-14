@@ -119,11 +119,7 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
       weekday: "short",
       timeZone: displayDay || event.is_all_day ? "UTC" : "Asia/Yekaterinburg",
     });
-    const compactTime = event.is_all_day
-      ? "Весь день"
-      : endTime
-        ? `${startTime}–${endTime}`
-        : startTime;
+    const compactTime = event.is_all_day ? "" : startTime;
 
     const compactCard = (
       <Card data-testid="compact-event-card" className="overflow-hidden">
@@ -143,7 +139,8 @@ export function EventCard({ event, onClick, href, displayDay, compact = false }:
                 {compactTitle}
               </h3>
               <p className="mt-1 truncate text-sm text-foreground/70">
-                {compactTime} · {event.speaker.name}
+                {compactTime && `${compactTime} · `}
+                {event.speaker.name}
               </p>
             </div>
           </div>
