@@ -43,6 +43,7 @@ interface EventCardProps {
    * Взаимоисключающе с onClick: при наличии href onClick игнорируется.
    */
   href?: string;
+  displayDay?: string;
 }
 
 const TYPE_BADGE_VARIANT: Record<
@@ -79,11 +80,13 @@ const formatPrice = (e: EventCardData): string => {
   return e.pricing_note ? `${rub} ₽ · ${e.pricing_note}` : `${rub} ₽`;
 };
 
-export function EventCard({ event, onClick, href }: EventCardProps) {
-  const dayNum = event.is_all_day ? event.start_at.getUTCDate() : event.start_at.getDate();
-  const monthLabel = event.is_all_day
-    ? event.start_at.toLocaleDateString("ru-RU", { month: "short", timeZone: "UTC" }).toUpperCase()
-    : monthShort(event.start_at);
+export function EventCard({ event, onClick, href, displayDay }: EventCardProps) {
+  const displayDate = displayDay ? new Date(`${displayDay}T00:00Z`) : event.start_at;
+  const dayNum = displayDay || event.is_all_day ? displayDate.getUTCDate() : displayDate.getDate();
+  const monthLabel =
+    displayDay || event.is_all_day
+      ? displayDate.toLocaleDateString("ru-RU", { month: "short", timeZone: "UTC" }).toUpperCase()
+      : monthShort(event.start_at);
   const startTime = formatTime(event.start_at);
   const endTime = formatTime(event.end_at);
   const capacityPct =

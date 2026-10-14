@@ -14,24 +14,16 @@ interface PageProps {
 
 export default async function PublicCalendarPage({ searchParams }: PageProps) {
   const filters = parseCalendarFilters(searchParams);
-  const {
-    events,
-    branches: branchOptions,
-    unavailable,
-  } = await settlePublicCalendar(
+  const { events, unavailable } = await settlePublicCalendar(
     async () => {
       const caller = await getServerCaller();
-      const [eventsResult, branches] = await Promise.all([
-        caller.event.publicList({
-          from: filters.from,
-          to: filters.to,
-          branch_id: filters.branch_id ?? undefined,
-          types: filters.types.length > 0 ? filters.types : undefined,
-          search: filters.search,
-          is_online: filters.is_online,
-        }),
-        caller.branch.list(),
-      ]);
+      const eventsResult = await caller.event.publicList({
+        from: filters.from,
+        to: filters.to,
+        types: filters.types.length > 0 ? filters.types : undefined,
+        search: filters.search,
+        is_online: filters.is_online,
+      });
 
       const loadedEvents: EventCardData[] = eventsResult.events
         .filter((ev) => ev.speaker != null)
@@ -59,12 +51,7 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
           speaker: ev.speaker!,
           bookings_count: ev._count.bookings,
         }));
-      const loadedBranches = branches.map((branch) => ({
-        id: branch.id,
-        name: branch.name,
-        city: branch.city,
-      }));
-      return [loadedEvents, loadedBranches] as const;
+      return [loadedEvents, [] as Array<{ id: string; name: string; city: string }>] as const;
     },
     [] as EventCardData[],
     [] as Array<{ id: string; name: string; city: string }>,
@@ -93,10 +80,15 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <CalendarSidebar branches={branchOptions} total={events.length} />
+        <CalendarSidebar branches={[]} total={events.length} />
 
         <div>
-          <AgendaList events={events} hrefBuilder={(ev) => `/event/${ev.id}`} />
+          <AgendaList
+            events={events}
+            from={filters.from}
+            to={filters.to}
+            hrefBuilder={(ev) => `/event/${ev.id}`}
+          />
         </div>
       </div>
     </div>

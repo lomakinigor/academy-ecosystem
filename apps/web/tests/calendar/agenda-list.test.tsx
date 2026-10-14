@@ -24,10 +24,46 @@ const ev = (id: string, start: string, title: string): EventCardData => ({
 });
 
 describe("AgendaList", () => {
+  it("показывает семинар 15–17 во всех днях и не показывает 18-е", () => {
+    render(
+      <AgendaList
+        events={[
+          {
+            ...ev("e1", "2026-10-15T00:00Z", "Путь Велеса"),
+            is_all_day: true,
+            end_at: new Date("2026-10-18T00:00Z"),
+          },
+        ]}
+        hrefBuilder={(event) => `/event/${event.id}`}
+      />,
+    );
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    expect(headings).toHaveLength(3);
+    expect(headings[1]).toHaveTextContent("16 октября");
+    expect(headings[2]).toHaveTextContent("17 октября");
+    expect(screen.getAllByRole("link")).toHaveLength(3);
+  });
   it("показывает empty-state при пустом списке", () => {
     render(<AgendaList events={[]} />);
     expect(screen.getByTestId("agenda-empty")).toBeInTheDocument();
     expect(screen.getByText(/Нет событий/)).toBeInTheDocument();
+  });
+  it("ограничивает продолжающееся событие выбранным периодом", () => {
+    render(
+      <AgendaList
+        events={[
+          {
+            ...ev("e1", "2026-10-15T00:00Z", "Путь Велеса"),
+            is_all_day: true,
+            end_at: new Date("2026-10-18T00:00Z"),
+          },
+        ]}
+        from={new Date("2026-10-16T00:00+05:00")}
+        to={new Date("2026-10-17T23:59+05:00")}
+      />,
+    );
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(2);
+    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("16 октября");
   });
 
   it("группирует события по дням и сортирует ключи по возрастанию", () => {
@@ -36,7 +72,7 @@ describe("AgendaList", () => {
         events={[
           ev("e2", "2026-05-05T10:00:00Z", "День 5"),
           ev("e1", "2026-05-04T10:00:00Z", "День 4"),
-          ev("e3", "2026-05-04T18:00:00Z", "День 4 вечер"),
+          ev("e3", "2026-05-04T16:00:00Z", "День 4 вечер"),
         ]}
       />,
     );
