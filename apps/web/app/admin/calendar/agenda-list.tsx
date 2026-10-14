@@ -12,6 +12,7 @@ interface AgendaListProps {
   hrefBuilder?: (event: EventCardData) => string;
   from?: Date;
   to?: Date;
+  compact?: boolean;
 }
 
 const isoDay = (d: Date, allDay = false): string =>
@@ -30,7 +31,14 @@ const dayLabel = (iso: string): string => {
   return `${dayPart}, ${weekdayPart}`;
 };
 
-export function AgendaList({ events, onEventClick, hrefBuilder, from, to }: AgendaListProps) {
+export function AgendaList({
+  events,
+  onEventClick,
+  hrefBuilder,
+  from,
+  to,
+  compact = false,
+}: AgendaListProps) {
   if (events.length === 0) {
     return (
       <div
@@ -76,7 +84,7 @@ export function AgendaList({ events, onEventClick, hrefBuilder, from, to }: Agen
   const sortedKeys = Array.from(groups.keys()).sort();
 
   return (
-    <div className="space-y-8" data-testid="agenda-list">
+    <div className={compact ? "space-y-5" : "space-y-8"} data-testid="agenda-list">
       {sortedKeys.map((iso) => {
         const dayEvents = groups.get(iso) ?? [];
         return (
@@ -87,7 +95,7 @@ export function AgendaList({ events, onEventClick, hrefBuilder, from, to }: Agen
             >
               {dayLabel(iso)}
             </h2>
-            <div className="mt-3 space-y-3">
+            <div className={compact ? "mt-2 space-y-2" : "mt-3 space-y-3"}>
               {dayEvents.map((ev) => (
                 <EventCard
                   key={ev.id}
@@ -95,6 +103,7 @@ export function AgendaList({ events, onEventClick, hrefBuilder, from, to }: Agen
                   displayDay={iso}
                   href={hrefBuilder ? hrefBuilder(ev) : undefined}
                   onClick={!hrefBuilder && onEventClick ? () => onEventClick(ev) : undefined}
+                  compact={compact}
                 />
               ))}
             </div>

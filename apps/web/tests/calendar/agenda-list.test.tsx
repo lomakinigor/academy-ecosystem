@@ -102,4 +102,15 @@ describe("AgendaList", () => {
     );
     expect(screen.getAllByTestId("event-card")).toHaveLength(2);
   });
+
+  it("передаёт компактный вид публичным карточкам", () => {
+    render(
+      <AgendaList
+        compact
+        events={[ev("e1", "2026-05-04T10:00:00Z", "День 4")]}
+        hrefBuilder={(event) => `/event/${event.id}`}
+      />,
+    );
+    expect(screen.getByTestId("compact-event-card")).toBeInTheDocument();
+  });
 });

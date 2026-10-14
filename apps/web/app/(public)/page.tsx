@@ -84,6 +84,7 @@ export default async function PublicCalendarPage({ searchParams }: PageProps) {
 
         <div>
           <AgendaList
+            compact
             events={events}
             from={filters.from}
             to={filters.to}

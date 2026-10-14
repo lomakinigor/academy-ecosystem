@@ -41,14 +41,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                {isAdmin && (
-                  <Link
-                    href="/admin/calendar"
-                    className="hidden text-sm font-medium text-brand-primary underline-offset-4 hover:underline sm:inline"
-                  >
-                    Админка →
-                  </Link>
-                )}
+                {isAdmin && <GuestAdminEntry />}
                 <Link
                   href="/student"
                   className="hidden text-sm font-medium text-brand-primary underline-offset-4 hover:underline sm:inline"

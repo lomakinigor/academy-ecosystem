@@ -44,6 +44,7 @@ interface EventCardProps {
    */
   href?: string;
   displayDay?: string;
+  compact?: boolean;
 }
 
 const TYPE_BADGE_VARIANT: Record<
@@ -80,7 +81,7 @@ const formatPrice = (e: EventCardData): string => {
   return e.pricing_note ? `${rub} ₽ · ${e.pricing_note}` : `${rub} ₽`;
 };
 
-export function EventCard({ event, onClick, href, displayDay }: EventCardProps) {
+export function EventCard({ event, onClick, href, displayDay, compact = false }: EventCardProps) {
   const displayDate = displayDay ? new Date(`${displayDay}T00:00Z`) : event.start_at;
   const dayNum = displayDay || event.is_all_day ? displayDate.getUTCDate() : displayDate.getDate();
   const monthLabel =
@@ -108,6 +109,55 @@ export function EventCard({ event, onClick, href, displayDay }: EventCardProps) 
       ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2"
       : ""
   }`;
+
+  if (compact) {
+    const compactTime = event.is_all_day
+      ? "Весь день"
+      : endTime
+        ? `${startTime}–${endTime}`
+        : startTime;
+
+    return (
+      <Card data-testid="compact-event-card" className="overflow-hidden">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-brand-warm text-brand-primary">
+              <span className="font-heading text-xl font-bold leading-none">{dayNum}</span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
+                {monthLabel}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="line-clamp-1 font-heading text-base font-semibold text-brand-primary">
+                {event.title}
+              </h3>
+              <p className="mt-1 truncate text-sm text-foreground/70">
+                {compactTime} · {event.speaker.name}
+              </p>
+            </div>
+          </div>
+
+          <details className="group mt-2 border-t border-border pt-2">
+            <summary className="cursor-pointer text-sm font-medium text-brand-primary marker:content-none">
+              Подробнее
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-foreground/75">
+              {event.description && <p>{event.description}</p>}
+              {event.venue && <p>Место: {event.venue}</p>}
+              <p>{event.is_online ? "Онлайн" : "Очно"}</p>
+              <p>Стоимость: {formatPrice(event)}</p>
+              {event.tags.length > 0 && <p>{event.tags.join(" · ")}</p>}
+              {href && (
+                <Link href={href} className="inline-block font-medium text-brand-primary underline">
+                  Открыть мероприятие
+                </Link>
+              )}
+            </div>
+          </details>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const cardInner = (
     <CardContent className="flex gap-4 p-4 sm:p-5">

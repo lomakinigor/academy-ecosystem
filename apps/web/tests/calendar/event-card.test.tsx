@@ -24,6 +24,26 @@ const baseEvent = (overrides: Partial<EventCardData> = {}): EventCardData => ({
 });
 
 describe("EventCard", () => {
+  it("в компактном публичном виде оставляет основные данные, а остальное прячет в раскрытие", () => {
+    render(
+      <EventCard
+        event={baseEvent({ venue: "На поселении", tags: ["с проживанием"] })}
+        compact
+        href="/event/evt1"
+      />,
+    );
+
+    expect(screen.getByTestId("compact-event-card")).toBeInTheDocument();
+    expect(screen.getByText("Храм-3: день 1")).toBeInTheDocument();
+    expect(screen.getByText(/В\.Ю\. Светлов/)).toBeInTheDocument();
+    expect(screen.getByText("Подробнее")).toBeInTheDocument();
+    expect(screen.getByText(/Место: На поселении/).closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByRole("link", { name: "Открыть мероприятие" })).toHaveAttribute(
+      "href",
+      "/event/evt1",
+    );
+  });
+
   it("без окончания не пишет лишнюю подпись или тире", () => {
     render(<EventCard event={baseEvent({ end_at: null })} />);
     const time = new Date("2026-05-04T07:00:00Z").toLocaleTimeString("ru-RU", {
