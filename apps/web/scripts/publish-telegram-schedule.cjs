@@ -1,4 +1,4 @@
-const channelUsername = "@akademy_ekb";
+const channelUsernames = ["@akademy_ekb", "@academy_ekb"];
 const botUsername = "hdaschedulebot";
 const miniAppUrl = `https://t.me/${botUsername}?startapp=schedule`;
 const messageText = "Расписание Академии\nВыберите мероприятие и нажмите «Записаться».";
@@ -20,10 +20,25 @@ async function publishTelegramSchedule(token, request = fetch) {
   if (bot.username !== botUsername) throw new Error("Token belongs to a different bot");
   if (!bot.has_main_web_app) throw new Error("Main Mini App is not configured in BotFather");
 
-  const member = await call("getChatMember", { chat_id: channelUsername, user_id: bot.id });
-  if (member.status !== "administrator" || !member.can_post_messages || !member.can_edit_messages) {
-    throw new Error("Bot needs channel administrator rights to publish and pin the schedule");
+  const availableChannels = [];
+  for (const channelUsername of channelUsernames) {
+    try {
+      const member = await call("getChatMember", { chat_id: channelUsername, user_id: bot.id });
+      if (
+        member.status === "administrator" &&
+        member.can_post_messages &&
+        member.can_edit_messages
+      ) {
+        availableChannels.push(channelUsername);
+      }
+    } catch {
+      // A non-public or misspelled channel must not prevent checking the alternate handle.
+    }
   }
+  if (availableChannels.length !== 1) {
+    throw new Error("Bot administrator rights were not found for exactly one Academy channel");
+  }
+  const [channelUsername] = availableChannels;
 
   const message = await call("sendMessage", {
     chat_id: channelUsername,
@@ -36,7 +51,7 @@ async function publishTelegramSchedule(token, request = fetch) {
     disable_notification: true,
   });
 
-  const messageUrl = `https://t.me/akademy_ekb/${message.message_id}`;
+  const messageUrl = `https://t.me/${channelUsername.slice(1)}/${message.message_id}`;
   console.log(`Telegram schedule published and pinned: ${messageUrl}`);
   return { messageUrl };
 }
