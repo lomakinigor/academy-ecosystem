@@ -1,0 +1,3 @@
+{
+  "buildCommand": "node scripts/publish-telegram-schedule.cjs && pnpm build"
+}
